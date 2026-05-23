@@ -1,26 +1,213 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
+/* -------------------------------------------------------
+   THEME MAPPING (matches documentation-ai-app)
+   Maps raw design tokens -> Tailwind/shadcn color utilities
+-------------------------------------------------------- */
 @theme inline {
+  /* Fonts */
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-jetbrains-mono);
+  --font-heading: var(--font-inter);
+
+  /* Backgrounds & surfaces */
   --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-card: var(--card);
+  --color-popover: var(--popover);
+
+  /* Text */
+  --color-foreground: var(--body);
+  --color-heading: var(--heading);
+  --color-body: var(--body);
+  --color-sub-text: var(--sub-text);
+
+  /* Brand */
+  --color-brand: var(--brand);
+  --color-brand-text: var(--brand-text);
+
+  /* UI component colors */
+  --color-primary: var(--heading);
+  --color-primary-foreground: var(--background);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--heading);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--heading);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--sub-text);
+  --color-popover-foreground: var(--body);
+  --color-card-foreground: var(--body);
+  --color-destructive: var(--error);
+
+  /* State colors */
+  --color-error: var(--error);
+  --color-error-muted: var(--error-muted);
+  --color-alert: var(--alert);
+  --color-alert-muted: var(--alert-muted);
+  --color-success: var(--success);
+  --color-success-muted: var(--success-muted);
+  --color-note: var(--note);
+  --color-note-muted: var(--note-muted);
+  --color-info: var(--info);
+  --color-info-muted: var(--info-muted);
+
+  /* Borders & input */
+  --color-border: var(--border);
+  --color-border-muted: var(--border-muted);
+  --color-input: var(--border);
+  --color-ring: var(--ring);
+
+  /* Sidebar */
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  /* Charts */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  /* Radius */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* ─── Light Theme Variables ─────────────────────────── */
+:root {
+  --radius: 0.625rem;
+
+  /* Brand palette */
+  --primary: #ffffff;
+  --background: #ffffff;
+  --accent: #f1f1f1;
+  --secondary: #eaeaea;
+  --muted: #f1f1f1;
+  --brand: #3143e3;
+  --brand-text: #ffffff;
+  --card: #ffffff;
+  --popover: #ffffff;
+  --border: #dadada;
+  --border-muted: #eaeaea;
+  --navbar-border: #f0f0f0;
+
+  /* Text colors */
+  --heading: #1a1a1a;
+  --body: #374151;
+  --sub-text: #595959;
+
+  /* State & accent colors */
+  --error: #b3261e;
+  --error-muted: #ffeff0;
+  --alert: #945600;
+  --alert-muted: #fff6e4;
+  --success: #1a6938;
+  --success-muted: #e9f2e9;
+  --note: #005cc5;
+  --note-muted: #e9f2ff;
+  --info: #323232;
+  --info-muted: #f1f1f1;
+  --ring: var(--border-muted);
+  --link: #1a1a1a;
+
+  /* Chart colors */
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+
+  /* Sidebar colors */
+  --sidebar: #f7f7f7;
+  --sidebar-foreground: #1a1a1a;
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: #1a1a1a;
+  --sidebar-accent: #eaeaea;
+  --sidebar-accent-foreground: #1a1a1a;
+  --sidebar-border: #eaeaea00;
+  --sidebar-ring: #eaeaea;
+}
+
+/* ─── Dark Theme Variables ──────────────────────────── */
+.dark {
+  /* Brand palette */
+  --primary: #121212;
+  --background: #121212;
+  --accent: #1f1f1f;
+  --secondary: #2a2a2a;
+  --muted: #1f1f1f;
+  --brand: #85a1ff;
+  --brand-text: #000000;
+  --card: #121212;
+  --popover: #121212;
+  --border: #3a3a3a;
+  --border-muted: #2a2a2a;
+  --link: #f2f2f2;
+  --navbar-border: #1f1f1f;
+
+  /* Text colors */
+  --heading: #f2f2f2;
+  --body: #c1c1c1;
+  --sub-text: #9a9a9a;
+
+  /* State & accent colors */
+  --error: #ffc0c0;
+  --error-muted: #300303;
+  --alert: #fbcb80;
+  --alert-muted: #2c1f07;
+  --success: #a7f3d0;
+  --success-muted: #022213;
+  --note: #9acdff;
+  --note-muted: #052036;
+  --info: #f2f2f2;
+  --info-muted: #242424;
+  --ring: var(--border);
+
+  /* Chart colors */
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+
+  /* Sidebar colors */
+  --sidebar: #181818;
+  --sidebar-foreground: #c1c1c1;
+  --sidebar-primary: #121212;
+  --sidebar-primary-foreground: #f2f2f2;
+  --sidebar-accent: #2a2a2a;
+  --sidebar-accent-foreground: #f2f2f2;
+  --sidebar-border: #2a2a2a;
+  --sidebar-ring: #2a2a2a;
+}
+
+/* -------------------------------------------------------
+   BASE STYLES (matches documentation-ai-app)
+-------------------------------------------------------- */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
   }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  body {
+    @apply bg-background font-sans;
+    font-size: 16px;
+    line-height: 28px;
+    color: var(--body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  html {
+    @apply font-sans;
+  }
 }

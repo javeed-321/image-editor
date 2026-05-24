@@ -31,11 +31,13 @@ export default function FabricCanvas() {
   };
   
   const canvasElRef = useRef<HTMLCanvasElement>(null);
+  const canvasWrapRef = useRef<HTMLDivElement>(null);
   const fabricRef = useRef<fabric.Canvas | null>(null);
   const historyRef = useRef<string[]>([]);
   const historyIdxRef = useRef<number>(-1);
   const restoringRef = useRef<boolean>(false);
   const userImageRef = useRef<fabric.FabricImage | null>(null);
+  const fitRef = useRef<() => void>(() => {});
 
   const [imageSrc, setImageSrc] = useState<string | null>(() =>
     typeof window !== "undefined"
@@ -104,13 +106,6 @@ export default function FabricCanvas() {
         c.sendObjectToBack(img);
         c.setDimensions({ width: w * scale, height: h * scale });
         c.requestRenderAll();
-    
-
-
-
-
-  
-
 
         setHasImage(true);
       })
@@ -140,42 +135,53 @@ export default function FabricCanvas() {
     }
   }, [tool, color]);
 
-  // this runs when padding changes synchronous rescales it 
   useEffect(() => {
+    if (!hasImage) return;
     const c = fabricRef.current;
     const userImg = userImageRef.current;
-    if (!hasImage || !c || !userImg) return;
+    const wrap = canvasWrapRef.current;
+    if (!c || !userImg || !wrap) return;
 
+    const fit = () => {
+      // Read the AABB after rotation — width/height auto-swap for 90/270°
+      const bounds = userImg.getBoundingRect();
+      const framedW = bounds.width + 2 * padding;
+      const framedH = bounds.height + 2 * padding;
 
-    // Read the AABB after rotation — width/height auto-swap for 90/270°
-    const bounds = userImg.getBoundingRect();
-    const imgW = bounds.width;
-    const imgH = bounds.height;
+      // Center the image inside the framed canvas
+      userImg.set({ left: framedW / 2, top: framedH / 2 });
+      userImg.setCoords();
 
-    const framedW = imgW + 2 * padding;
-    const framedH = imgH + 2 * padding;
+      c.backgroundColor = bgColor;
 
-    // Center the image inside the framed canvas (pivot is its center)
-    userImg.set({ left: framedW / 2, top: framedH / 2 });
-    userImg.setCoords();
+      const bg = c.backgroundImage;
+      if (bg && typeof bg !== "string") {
+        bg.set({
+          scaleX: framedW / (bg.width ?? 1),
+          scaleY: framedH / (bg.height ?? 1),
+        });
+      }
 
-    c.backgroundColor = bgColor;
+      // Container's actual measured size → fit zoom, then layer user zoom on top
+      const availW = wrap.clientWidth - 24;
+      const availH = wrap.clientHeight - 24;
+      const fitZoom = Math.min(availW / framedW, availH / framedH, 1);
+      const z = Math.max(0.1, fitZoom * zoom);
 
-    const bg = c.backgroundImage;
-    if (bg && typeof bg !== "string") {
-      bg.set({
-        scaleX: framedW / (bg.width ?? 1),
-        scaleY: framedH / (bg.height ?? 1),
-      });
-    }
+      c.setZoom(z);
+      c.setDimensions({ width: framedW * z, height: framedH * z });
+      c.requestRenderAll();
 
-    c.setZoom(zoom);
-    c.setDimensions({ width: framedW * zoom, height: framedH * zoom });
-    c.requestRenderAll();
-        if (historyRef.current.length === 0) {
-  historyRef.current = [JSON.stringify(c.toJSON())];
-  historyIdxRef.current = 0;
-}
+      if (historyRef.current.length === 0) {
+        historyRef.current = [JSON.stringify(c.toJSON())];
+        historyIdxRef.current = 0;
+      }
+    };
+
+    fitRef.current = fit;
+    const ro = new ResizeObserver(fit);
+    ro.observe(wrap);
+    return () => ro.disconnect();
   }, [hasImage, padding, bgColor, zoom]);
 
 
@@ -193,23 +199,14 @@ export default function FabricCanvas() {
     fabric.FabricImage.fromURL(bgImageUrl, { crossOrigin: "anonymous" })
       .then((bgImg) => {
         if (cancelled) return;
-        const userImg = userImageRef.current;
-        const imgW = (userImg?.width ?? 0) * (userImg?.scaleX ?? 1);
-        const imgH = (userImg?.height ?? 0) * (userImg?.scaleY ?? 1);
-        const framedW = imgW + 2 * padding;
-        const framedH = imgH + 2 * padding;
-        bgImg.set({
-          scaleX: framedW / (bgImg.width ?? 1),
-          scaleY: framedH / (bgImg.height ?? 1),
-        });
         c.backgroundImage = bgImg;
-        c.requestRenderAll();
+        fitRef.current();
       })
       .catch(() => { });
     return () => {
       cancelled = true;
     };
-  }, [bgImageUrl, hasImage, padding]);
+  }, [bgImageUrl, hasImage]);
 
 
   const uploadFromFile = (file: File) => {
@@ -307,19 +304,8 @@ export default function FabricCanvas() {
       obj.setCoords();
     });
 
-    // Resize the actual <canvas> element to the swapped dims (apply zoom).
-    c.setDimensions({ width: newW * zoom, height: newH * zoom });
-
-    // Rescale the bg image to fit the new framed area.
-    const bg = c.backgroundImage;
-    if (bg && typeof bg !== "string") {
-      bg.set({
-        scaleX: newW / (bg.width ?? 1),
-        scaleY: newH / (bg.height ?? 1),
-      });
-    }
-
-    c.requestRenderAll();
+    // Sizing + bg rescale + fit-to-viewport now go through the single fit() path.
+    fitRef.current();
   };
 
 
@@ -392,14 +378,14 @@ export default function FabricCanvas() {
           if (url) safeSet(STORAGE.BG_IMAGE, url);
           else localStorage.removeItem(STORAGE.BG_IMAGE);
         }} />
-      <div className="relative flex flex-1 items-center justify-center overflow-auto bg-muted/30 px-2 py-4 pb-20 sm:px-4 sm:py-6 md:pb-6">
+      <div ref={canvasWrapRef} className="relative flex flex-1 items-center justify-center overflow-auto bg-muted/30 px-2 py-4 pb-20 sm:px-4 sm:py-6 md:pb-6">
         <div className="overflow-hidden rounded-lg border border-border bg-white shadow-sm">
           <canvas ref={canvasElRef} />
         </div>
-        <div className="fixed bottom-6 left-1/2 z-10  -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-card p-1 shadow-md lg:inline-flex">
+        <div className="fixed bottom-20 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-card p-1 shadow-md md:bottom-6">
           <button
             type="button"
-            onClick={() => setZoom((z) => Math.max(0.25, z - 0.10))}
+            onClick={() => setZoom((z) => Math.max(0.25, z - 0.05))}
             className="flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
             aria-label="Zoom out"
           >
@@ -410,7 +396,7 @@ export default function FabricCanvas() {
           </span>
           <button
             type="button"
-            onClick={() => setZoom((z) => Math.min(2, z + 0.10))}
+            onClick={() => setZoom((z) => Math.min(2, z + 0.05))}
             className="flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
             aria-label="Zoom in"
           >

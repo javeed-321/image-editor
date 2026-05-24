@@ -102,7 +102,7 @@ export function EditorToolbar({
       </div>
 
       <div className="-mx-3 flex-1 overflow-x-auto scrollbar-hide  px-3 md:mx-auto md:flex-none md:overflow-visible md:px-0">
-        <div className="inline-flex w-max items-center gap-1 rounded-2xl border border-border bg-background p-1 shadow-sm md:w-auto md:flex-wrap">
+        <div className="inline-flex w-max items-center gap-1 rounded-2xl border border-border bg-background p-1 shadow-sm md:w-auto ">
         {SHAPE_TOOLS.map(({ id, label, Icon }) => {
           const active = tool === id;
           return (

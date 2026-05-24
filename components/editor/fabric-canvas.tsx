@@ -396,7 +396,7 @@ export default function FabricCanvas() {
         <div className="overflow-hidden rounded-lg border border-border bg-white shadow-sm">
           <canvas ref={canvasElRef} />
         </div>
-        <div className="fixed bottom-6 left-1/2 z-10 hidden -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-card p-1 shadow-md lg:inline-flex">
+        <div className="fixed bottom-6 left-1/2 z-10  -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-card p-1 shadow-md lg:inline-flex">
           <button
             type="button"
             onClick={() => setZoom((z) => Math.max(0.25, z - 0.10))}

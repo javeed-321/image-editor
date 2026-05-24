@@ -9,6 +9,7 @@ import {
   Frame,
   Pen,
   Redo2,
+  RotateCw,
   Square,
   Trash2,
   Type,
@@ -49,6 +50,8 @@ type Props = {
   onDelete: () => void;
   onCancel: () => void;
   onSave: () => void;
+  onRotate: () => void;
+
   onOpenBackground: () => void;
 };
 
@@ -64,6 +67,7 @@ export function EditorToolbar({
   onCancel,
   onSave,
   onOpenBackground,
+  onRotate
 }: Props) {
   const [showColors, setShowColors] = useState(false);
 
@@ -154,6 +158,10 @@ export function EditorToolbar({
             </div>
           )}
         </div>
+        <ToolButton label="Rotate" onClick={onRotate}>
+  <RotateCw className="size-5" />
+</ToolButton>
+
         <ToolButton label="Background" onClick={onOpenBackground}>
           <Frame className="size-5" />
         </ToolButton>

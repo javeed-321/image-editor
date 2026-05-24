@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   ArrowUpRight,
   ChevronDown,
@@ -70,17 +70,39 @@ export function EditorToolbar({
   onRotate
 }: Props) {
   const [showColors, setShowColors] = useState(false);
+  const colorBtnRef = useRef<HTMLDivElement>(null);
+  const [colorPopupStyle, setColorPopupStyle] = useState<React.CSSProperties>({});
+
+  const toggleColors = () => {
+    setShowColors((prev) => {
+      const next = !prev;
+      if (next && colorBtnRef.current) {
+        const rect = colorBtnRef.current.getBoundingClientRect();
+        setColorPopupStyle({
+          position: "fixed",
+          top: rect.bottom + 8,
+          left: rect.left + rect.width / 2,
+          transform: "translateX(-50%)",
+        });
+      }
+      return next;
+    });
+  };
 
   return (
-    <div className="flex flex-wrap items-center gap-4 border-b border-border bg-card px-4 py-3">
-      <div className="flex items-center gap-1 text-sm font-medium">
-        <span className="max-w-[220px] truncate" title={filename}>
+    <div className="flex items-center gap-3 border-b border-border bg-card px-3 py-2 md:flex-wrap md:gap-4 md:px-4 md:py-3">
+      <div className="hidden min-w-0 items-center gap-1 text-sm font-medium md:flex">
+        <span
+          className="max-w-[220px] truncate"
+          title={filename}
+        >
           {filename || "Untitled"}
         </span>
-        <ChevronDown className="size-4 text-muted-foreground" />
+        <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
       </div>
 
-      <div className="mx-auto flex flex-wrap items-center gap-1 rounded-2xl border border-border bg-background p-1 shadow-sm">
+      <div className="-mx-3 flex-1 overflow-x-auto scrollbar-hide  px-3 md:mx-auto md:flex-none md:overflow-visible md:px-0">
+        <div className="inline-flex w-max items-center gap-1 rounded-2xl border border-border bg-background p-1 shadow-sm md:w-auto md:flex-wrap">
         {SHAPE_TOOLS.map(({ id, label, Icon }) => {
           const active = tool === id;
           return (
@@ -106,10 +128,10 @@ export function EditorToolbar({
 
         <Divider />
 
-        <div className="relative">
+        <div ref={colorBtnRef} className="relative">
           <ToolButton
             label="Color"
-            onClick={() => setShowColors((v) => !v)}
+            onClick={toggleColors}
             aria-haspopup="menu"
             aria-expanded={showColors}
           >
@@ -119,7 +141,10 @@ export function EditorToolbar({
             />
           </ToolButton>
           {showColors && (
-            <div className="absolute top-full left-1/2 z-20 mt-2 -translate-x-1/2 rounded-xl border border-border bg-card p-2 shadow-lg">
+            <div
+              style={colorPopupStyle}
+              className="z-50 rounded-xl border border-border bg-card p-2 shadow-lg"
+            >
               <div className="flex items-center gap-1.5">
                 {COLORS.map((co) => (
                   <button
@@ -169,9 +194,10 @@ export function EditorToolbar({
         <ToolButton label="Delete" onClick={onDelete}>
           <Trash2 className="size-5" />
         </ToolButton>
+        </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="hidden items-center gap-3 md:flex">
         <button
           type="button"
           onClick={onCancel}

@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as fabric from "fabric";
+import { Download } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { BackgroundDialog } from "./background-dialog";
 import { EditorToolbar, type Tool } from "./editor-toolbar";
 import { addArrow, addCircle, addRect, addText } from "./shapes";
@@ -99,11 +101,17 @@ export default function FabricCanvas() {
           originY: "center",
         });
         c.add(img);
-        // c.sendObjectToBack(img);
+        c.sendObjectToBack(img);
         c.setDimensions({ width: w * scale, height: h * scale });
         c.requestRenderAll();
-        historyRef.current = [JSON.stringify(c.toJSON())];
-        historyIdxRef.current = 0;
+    
+
+
+
+
+  
+
+
         setHasImage(true);
       })
       .catch(() => { });
@@ -164,6 +172,10 @@ export default function FabricCanvas() {
     c.setZoom(zoom);
     c.setDimensions({ width: framedW * zoom, height: framedH * zoom });
     c.requestRenderAll();
+        if (historyRef.current.length === 0) {
+  historyRef.current = [JSON.stringify(c.toJSON())];
+  historyIdxRef.current = 0;
+}
   }, [hasImage, padding, bgColor, zoom]);
 
 
@@ -380,11 +392,11 @@ export default function FabricCanvas() {
           if (url) safeSet(STORAGE.BG_IMAGE, url);
           else localStorage.removeItem(STORAGE.BG_IMAGE);
         }} />
-      <div className="relative flex flex-1 items-center justify-center overflow-auto bg-muted/30 px-4 py-6">
+      <div className="relative flex flex-1 items-center justify-center overflow-auto bg-muted/30 px-2 py-4 pb-20 sm:px-4 sm:py-6 md:pb-6">
         <div className="overflow-hidden rounded-lg border border-border bg-white shadow-sm">
           <canvas ref={canvasElRef} />
         </div>
-        <div className="fixed bottom-6 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-card p-1 shadow-md">
+        <div className="fixed bottom-6 left-1/2 z-10 hidden -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-card p-1 shadow-md lg:inline-flex">
           <button
             type="button"
             onClick={() => setZoom((z) => Math.max(0.25, z - 0.10))}
@@ -405,6 +417,20 @@ export default function FabricCanvas() {
             +
           </button>
         </div>
+      </div>
+
+      <div className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 shadow-[0_-2px_8px_rgba(0,0,0,0.04)] md:hidden">
+        <button
+          type="button"
+          onClick={cancel}
+          className="text-sm font-medium text-muted-foreground hover:text-foreground"
+        >
+          Cancel
+        </button>
+        <Button onClick={save} className="px-5">
+          <Download className="size-4" />
+          Save
+        </Button>
       </div>
     </div>
   );

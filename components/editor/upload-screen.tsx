@@ -49,10 +49,10 @@ export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
   };
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-4 py-10">
+    <div className="flex flex-1 flex-col items-center justify-center px-3 py-6 sm:px-4 sm:py-10">
       <div
         className={cn(
-          "w-full max-w-3xl rounded-3xl border-2 border-dashed bg-card transition-colors",
+          "w-full max-w-3xl rounded-2xl border-2 border-dashed bg-card transition-colors sm:rounded-3xl",
           isDragging ? "border-primary bg-primary/5" : "border-border",
         )}
         onDragOver={(e) => {
@@ -66,12 +66,12 @@ export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
           pickFiles(e.dataTransfer.files);
         }}
       >
-        <div className="flex flex-col items-center gap-6 px-6 py-16 text-center">
-          <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
-            <Upload className="size-9" />
+        <div className="flex flex-col items-center gap-5 px-4 py-10 text-center sm:gap-6 sm:px-6 sm:py-16">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted text-muted-foreground sm:h-20 sm:w-20">
+            <Upload className="size-7 sm:size-9" />
           </div>
           <div className="space-y-2">
-            <h1 className="text-3xl font-bold tracking-tight">
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
               Edit Text on Screenshot
             </h1>
             <p className="text-muted-foreground">

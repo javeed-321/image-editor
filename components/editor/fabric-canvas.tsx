@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as fabric from "fabric";
-import { Download } from "lucide-react";
+import { Check, X } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { BackgroundDialog } from "./background-dialog";
 import { EditorToolbar, type Tool } from "./editor-toolbar";
+import { SaveMenu } from "./save-menu";
 import { addArrow, addCircle, addRect, addText } from "./shapes";
 import { UploadScreen } from "./upload-screen";
+import { withAlpha } from "@/lib/utils";
 
 const MAX_W = 1100;
 const MAX_H = 2000;
@@ -16,7 +17,7 @@ const MAX_H = 2000;
 export default function FabricCanvas() {
 
 
-   const STORAGE = {
+  const STORAGE = {
     USER_IMAGE: "editor.userImage",
     BG_IMAGE: "editor.bgImage",
     FILENAME: "editor.filename",
@@ -29,7 +30,7 @@ export default function FabricCanvas() {
       console.warn(`localStorage failed for ${key}:`, e);
     }
   };
-  
+
   const canvasElRef = useRef<HTMLCanvasElement>(null);
   const canvasWrapRef = useRef<HTMLDivElement>(null);
   const fabricRef = useRef<fabric.Canvas | null>(null);
@@ -37,7 +38,11 @@ export default function FabricCanvas() {
   const historyIdxRef = useRef<number>(-1);
   const restoringRef = useRef<boolean>(false);
   const userImageRef = useRef<fabric.FabricImage | null>(null);
-  const fitRef = useRef<() => void>(() => {});
+  const fitRef = useRef<() => void>(() => { });
+  const cropRectRef = useRef<fabric.Rect | null>(null);
+  const [cropMode, setCropMode] = useState(false);
+
+
 
   const [imageSrc, setImageSrc] = useState<string | null>(() =>
     typeof window !== "undefined"
@@ -55,7 +60,7 @@ export default function FabricCanvas() {
       : null,
   );
 
-  const [tool, setTool] = useState<Tool>("select");
+  const [tool, setTool] = useState<Tool>("pen");
   const [color, setColor] = useState<string>("#ef4444");
   const [zoom, setZoom] = useState<number>(1);
   const [hasImage, setHasImage] = useState<boolean>(false);
@@ -65,7 +70,7 @@ export default function FabricCanvas() {
 
 
 
- 
+
 
 
 
@@ -130,7 +135,25 @@ export default function FabricCanvas() {
       brush.color = color;
       brush.width = 4;
       c.freeDrawingBrush = brush;
-    } else {
+    } else if (tool === "highlight") {
+      c.isDrawingMode = true;
+      const brush = new fabric.PencilBrush(c);
+      brush.color = "rgba(253, 224, 71, 0.4)";   // #fde047 @ 40% opacity
+
+      brush.width = 20;
+      // ← thicker
+      c.freeDrawingBrush = brush;
+    }
+    else if (tool === "blur") {
+      c.isDrawingMode = true;
+      const brush = new fabric.PencilBrush(c);
+      brush.color = "white";   // dark slate — fully opaque so content is unreadable
+      brush.width = 19;          // wider than highlight; covers a line of text in one stroke
+      brush.strokeLineCap = "round";
+      c.freeDrawingBrush = brush;
+
+    }
+    else {
       c.isDrawingMode = false;
     }
   }, [tool, color]);
@@ -336,16 +359,141 @@ export default function FabricCanvas() {
     historyRef.current = [];
     historyIdxRef.current = -1;
     userImageRef.current = null;
+    localStorage.removeItem(STORAGE.BG_IMAGE);
+    localStorage.removeItem(STORAGE.FILENAME)
+    localStorage.removeItem(STORAGE.USER_IMAGE)
+
   };
 
-  const save = () => {
+
+
+  const enterCrop = () => {
+    const c = fabricRef.current;
+    const img = userImageRef.current;
+    if (!c || !img || cropMode) return;
+
+    c.isDrawingMode = false;
+    c.discardActiveObject();
+
+    const b = img.getBoundingRect();
+    const rect = new fabric.Rect({
+      left: b.left + 10, top: b.top + 10, width: b.width - 50, height: b.height - 50,
+      fill: "rgba(59,130,246,0.08)",
+      stroke: "#3b82f6", strokeDashArray: [6, 4], strokeWidth: 2, strokeUniform: true,
+      cornerColor: "#3b82f6", cornerStyle: "circle", transparentCorners: false,
+      lockRotation: true, hasRotatingPoint: false,
+      minScaleLimit: 0.05,
+    });
+
+    // ── Clamp to image bounds on every move/scale ────────────────
+    const clamp = () => {
+      const ib = img.getBoundingRect();
+      const minL = ib.left;
+      const minT = ib.top;
+      const maxR = ib.left + ib.width;
+      const maxB = ib.top + ib.height;
+
+      // Compute the rect's four edges as the user just left them
+      let l = rect.left ?? 0;
+      let t = rect.top ?? 0;
+      let r = l + rect.getScaledWidth();
+      let b = t + rect.getScaledHeight();
+
+      // Clamp each edge to the image
+      if (l < minL) l = minL;
+      if (t < minT) t = minT;
+      if (r > maxR) r = maxR;
+      if (b > maxB) b = maxB;
+
+      // Reapply as position + scale (single source of truth)
+      rect.set({
+        left: l,
+        top: t,
+        scaleX: (r - l) / (rect.width ?? 1),
+        scaleY: (b - t) / (rect.height ?? 1),
+      });
+      rect.setCoords();
+    };
+
+
+    rect.on("moving", clamp);
+    rect.on("scaling", clamp);
+    // ─────────────────────────────────────────────────────────────
+
+    c.add(rect);
+
+    c.setActiveObject(rect);
+    cropRectRef.current = rect;
+    setCropMode(true);
+  };
+
+  const cancelCrop = () => {
+    const c = fabricRef.current;
+    const rect = cropRectRef.current;
+    if (!c || !rect) return;
+    c.remove(rect);
+    c.requestRenderAll();
+    cropRectRef.current = null;
+    setCropMode(false);
+  };
+
+  const applyCrop = () => {
+    const c = fabricRef.current;
+    const img = userImageRef.current;
+    const rect = cropRectRef.current;
+    if (!c || !img || !rect) return;
+
+    const imgBounds = img.getBoundingRect();
+    const scale = img.scaleX ?? 1;
+
+    // Clamp the crop rect to the image's visible area first
+    const rL = Math.max(rect.left ?? 0, imgBounds.left);
+    const rT = Math.max(rect.top ?? 0, imgBounds.top);
+    const rR = Math.min((rect.left ?? 0) + rect.getScaledWidth(), imgBounds.left + imgBounds.width);
+    const rB = Math.min((rect.top ?? 0) + rect.getScaledHeight(), imgBounds.top + imgBounds.height);
+    const rW = rR - rL;
+    const rH = rB - rT;
+    if (rW <= 1 || rH <= 1) { cancelCrop(); return; }
+
+    // Convert canvas-space → source-image-pixel space.
+    // Add existing cropX/Y so successive crops compound correctly.
+    const cropX = (rL - imgBounds.left) / scale + (img.cropX ?? 0);
+    const cropY = (rT - imgBounds.top) / scale + (img.cropY ?? 0);
+    const cropW = rW / scale;
+    const cropH = rH / scale;
+
+    img.set({ cropX, cropY, width: cropW, height: cropH });
+    img.setCoords();
+
+    c.remove(rect);
+    cropRectRef.current = null;
+    setCropMode(false);
+
+    pushHistory();
+    fitRef.current();  // re-fit canvas to new image size
+  };
+
+
+
+  const save = (targetW?: number) => {
     const c = fabricRef.current;
     if (!c) return;
-    const data = c.toDataURL({ format: "png", multiplier: 1 });
+    const z = c.getZoom() || 1;
+    // multiplier: 1/z gives the natural (un-zoomed) canvas size.
+    // For preset widths, scale relative to current canvas width.
+    const multiplier =
+      targetW && targetW > 0 ? targetW / c.getWidth() : 1 / z;
+    const data = c.toDataURL({ format: "png", multiplier });
     const a = document.createElement("a");
     a.href = data;
     a.download = filename || "edited.png";
     a.click();
+  };
+
+  const handleBgImgChange = (url: string | null) => {
+    setBgImageUrl(url);
+    if (url) safeSet(STORAGE.BG_IMAGE, url);
+    else localStorage.removeItem(STORAGE.BG_IMAGE);
   };
 
   return (
@@ -363,6 +511,8 @@ export default function FabricCanvas() {
         onSave={save}
         onOpenBackground={() => setBgDialogOpen(true)}
         onRotate={rotate}
+        onCrop={enterCrop}
+
 
       />
       <BackgroundDialog
@@ -373,20 +523,16 @@ export default function FabricCanvas() {
         bgImageUrl={bgImageUrl}
         onPaddingChange={setPadding}
         onBgColorChange={setBgColor}
-        onBgImageChange={(url) => {
-          setBgImageUrl(url);
-          if (url) safeSet(STORAGE.BG_IMAGE, url);
-          else localStorage.removeItem(STORAGE.BG_IMAGE);
-        }} />
+        onBgImageChange={handleBgImgChange} />
       <div ref={canvasWrapRef} className="relative flex flex-1 items-center justify-center overflow-auto bg-muted/30 px-2 py-4 pb-20 sm:px-4 sm:py-6 md:pb-6">
         <div className="overflow-hidden rounded-lg border border-border bg-white shadow-sm">
           <canvas ref={canvasElRef} />
         </div>
-        <div className="fixed bottom-20 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-card p-1 shadow-md md:bottom-6">
+        <div className="fixed bottom-15 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-card p-1 shadow-md md:bottom-6">
           <button
             type="button"
             onClick={() => setZoom((z) => Math.max(0.25, z - 0.05))}
-            className="flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
+            className="flex size-7  justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
             aria-label="Zoom out"
           >
             −
@@ -403,9 +549,28 @@ export default function FabricCanvas() {
             +
           </button>
         </div>
+        {cropMode && (
+          <div className="fixed bottom-20 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card p-1 shadow-md md:bottom-6">
+            <button
+              type="button"
+              onClick={cancelCrop}
+              className="flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted"
+            >
+              <X className="size-4" /> Cancel
+            </button>
+            <button
+              type="button"
+              onClick={applyCrop}
+              className="flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              <Check className="size-4" /> Apply
+            </button>
+          </div>
+        )}
+
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3 border-t border-border bg-card px-4 py-3 shadow-[0_-2px_8px_rgba(0,0,0,0.04)] md:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3   px-4 py-3  lg:hidden  bg-[transparent]">
         <button
           type="button"
           onClick={cancel}
@@ -413,10 +578,7 @@ export default function FabricCanvas() {
         >
           Cancel
         </button>
-        <Button onClick={save} className="px-5">
-          <Download className="size-4" />
-          Save
-        </Button>
+        <SaveMenu onSave={save} menuPlacement="top" />
       </div>
     </div>
   );

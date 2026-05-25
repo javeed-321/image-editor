@@ -74,8 +74,8 @@ export function BackgroundDialog({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium">Padding</label>
-              <span className="text-sm tabular-nums text-muted-foreground">
-                {padding}px
+              <span className="text-sm  text-muted-foreground">
+                {padding} {" "}px
               </span>
             </div>
             <Slider
@@ -99,8 +99,8 @@ export function BackgroundDialog({
                   type="button"
                   onClick={() => onBgColorChange(co)}
                   className={cn(
-                    "size-7 rounded-full border border-border transition-transform hover:scale-110",
-                    bgColor === co && "ring-2 ring-ring ring-offset-1",
+                    "size-7 rounded-full border border-border  hover:scale-110",
+                    bgColor === co && "ring-2  ring-offset-1 bg-primary",
                   )}
                   style={{ backgroundColor: co }}
                   aria-label={co}
@@ -125,12 +125,12 @@ export function BackgroundDialog({
             </div>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Background image</label>
+          <div className="space-y-2 space-x-2 flex-col items-center" >
+            <label className="text-sm font-medium mb-3">Background image</label>
             {bgImageUrl ? (
               <div className="flex items-center gap-3 rounded-lg border border-border p-2">
                 <div
-                  className="size-12 shrink-0 rounded-md border border-border bg-cover bg-center"
+                  className="size-12 flex-shrink-1 rounded-md border border-border bg-cover bg-center"
                   style={{ backgroundImage: `url(${bgImageUrl})` }}
                 />
                 <div className="flex-1 text-xs text-muted-foreground">
@@ -149,6 +149,7 @@ export function BackgroundDialog({
               <Button
                 variant="outline"
                 onClick={() => fileInputRef.current?.click()}
+                className=""
               >
                 <Upload className="size-4" />
                 Upload image

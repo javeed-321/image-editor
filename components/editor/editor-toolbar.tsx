@@ -13,17 +13,20 @@ import {
   Square,
   Trash2,
   Type,
-  Undo2,
+  Undo2,Crop ,Highlighter ,EyeOff 
 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { SaveMenu } from "./save-menu";
 
-export type Tool = "select" | "pen" | "text" | "rect" | "circle" | "arrow";
+export type Tool = "select" | "pen" | "text" |"blur" | "rect" | "highlight"| "circle" | "arrow";
 
 const SHAPE_TOOLS = [
   { id: "pen" as const, label: "Pen", Icon: Pen },
   { id: "text" as const, label: "Text", Icon: Type },
+    { id: "highlight" as const, label: "Highlight", Icon: Highlighter },
+  { id: "blur" as const, label: "Blur", Icon: EyeOff },
+
   { id: "rect" as const, label: "Rectangle", Icon: Square },
   { id: "circle" as const, label: "Circle", Icon: CircleIcon },
   { id: "arrow" as const, label: "Arrow", Icon: ArrowUpRight },
@@ -49,10 +52,11 @@ type Props = {
   onColorChange: (color: string) => void;
   onDelete: () => void;
   onCancel: () => void;
-  onSave: () => void;
+  onSave: (targetW?: number) => void;
   onRotate: () => void;
-
   onOpenBackground: () => void;
+    onCrop: () => void;
+
 };
 
 export function EditorToolbar({
@@ -67,7 +71,8 @@ export function EditorToolbar({
   onCancel,
   onSave,
   onOpenBackground,
-  onRotate
+  onRotate,
+  onCrop
 }: Props) {
   const [showColors, setShowColors] = useState(false);
   const colorBtnRef = useRef<HTMLDivElement>(null);
@@ -98,11 +103,11 @@ export function EditorToolbar({
         >
           {filename || "Untitled"}
         </span>
-        <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
+        {/* <ChevronDown className="size-4 shrink-0 text-muted-foreground" /> */}
       </div>
 
       <div className="-mx-3 flex-1 overflow-x-auto scrollbar-hide  px-3 md:mx-auto md:flex-none md:overflow-visible md:px-0">
-        <div className="inline-flex w-max items-center gap-1 rounded-2xl border border-border bg-background p-1 shadow-sm md:w-auto ">
+        <div className="inline-flex items-center  gap-1 rounded-2xl border border-border bg-background p-1 shadow-lg md:w-auto ">
         {SHAPE_TOOLS.map(({ id, label, Icon }) => {
           const active = tool === id;
           return (
@@ -117,18 +122,7 @@ export function EditorToolbar({
           );
         })}
 
-        <Divider />
-
-        <ToolButton label="Undo" onClick={onUndo}>
-          <Undo2 className="size-5" />
-        </ToolButton>
-        <ToolButton label="Redo" onClick={onRedo}>
-          <Redo2 className="size-5" />
-        </ToolButton>
-
-        <Divider />
-
-        <div ref={colorBtnRef} className="relative">
+ <div ref={colorBtnRef} className="relative">
           <ToolButton
             label="Color"
             onClick={toggleColors}
@@ -183,6 +177,21 @@ export function EditorToolbar({
             </div>
           )}
         </div>
+                <Divider />
+
+        <ToolButton label="Undo" onClick={onUndo}>
+          <Undo2 className="size-5" />
+        </ToolButton>
+        <ToolButton label="Redo" onClick={onRedo}>
+          <Redo2 className="size-5" />
+        </ToolButton>
+
+        <Divider />
+<ToolButton label="Crop" onClick={onCrop}>
+  <Crop className="size-5" />
+</ToolButton>
+
+       
         <ToolButton label="Rotate" onClick={onRotate}>
   <RotateCw className="size-5" />
 </ToolButton>
@@ -197,7 +206,7 @@ export function EditorToolbar({
         </div>
       </div>
 
-      <div className="hidden items-center gap-3 md:flex">
+      <div className="hidden items-center gap-3 md:hidden lg:flex">
         <button
           type="button"
           onClick={onCancel}
@@ -205,10 +214,7 @@ export function EditorToolbar({
         >
           Cancel
         </button>
-        <Button onClick={onSave} className="px-5">
-          <Download className="size-4" />
-          Save
-        </Button>
+        <SaveMenu onSave={onSave} />
       </div>
     </div>
   );
@@ -234,23 +240,23 @@ function ToolButton({
       onClick={onClick}
       className={cn(
         "flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted",
-        active && "text-primary",
+        active && cn("text-primary",)
       )}
       {...aria}
     >
       {children}
       <span className={cn(active && "font-semibold")}>{label}</span>
-      <span
+      {/* <span
         className={cn(
           "h-0.5 w-6 rounded-full",
-          active ? "bg-primary" : "bg-transparent",
+          active ? "bg-danger" : "bg-transparent",
         )}
         aria-hidden
-      />
+      /> */}
     </button>
   );
 }
 
 function Divider() {
-  return <span className="mx-1 h-8 w-px bg-border" aria-hidden />;
+  return <span className="mx-1 h-12 w-px bg-border" aria-hidden />;
 }

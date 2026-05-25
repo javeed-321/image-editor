@@ -578,7 +578,8 @@ export default function FabricCanvas() {
         >
           Cancel
         </button>
-        <SaveMenu onSave={save} menuPlacement="top" />
+        <SaveMenu onSave={save} menuPlacement="top"         filename={filename}
+ />
       </div>
     </div>
   );

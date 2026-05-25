@@ -28,12 +28,14 @@ type Props = {
   sizes?: ExportSize[];
   /** Whether the menu should open upwards (e.g. for the mobile bottom bar). */
   menuPlacement?: "top" | "bottom";
+  filename:string ;
 };
 
 export function SaveMenu({
   onSave,
   sizes = EXPORT_SIZES,
   menuPlacement = "bottom",
+filename
 }: Props) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -73,6 +75,7 @@ export function SaveMenu({
           role="menu"
           className={`absolute right-0 z-30 w-56 overflow-hidden rounded-xl border border-border bg-card text-left shadow-lg ${menuPos}`}
         >
+          <input value={filename}  />
           {sizes.map((size) => (
             <button
               key={size.label}

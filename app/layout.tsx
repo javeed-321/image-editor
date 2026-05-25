@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
+import { PromoBadge } from "@/components/promo-badge";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -41,6 +42,7 @@ export default function RootLayout({
     >
       <body className="flex min-h-full flex-col bg-background">
         <main className="flex flex-1 flex-col">{children}</main>
+        <PromoBadge />
       </body>
     </html>
   );

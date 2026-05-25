@@ -10,7 +10,10 @@ import { EditorToolbar, type Tool } from "./editor-toolbar";
 import { SaveMenu } from "./save-menu";
 import { addArrow, addCircle, addRect, addText } from "./shapes";
 import { UploadScreen } from "./upload-screen";
-import { withAlpha } from "@/lib/utils";
+
+
+import { DiscardChangesDialog } from "./discard-changes";
+
 
 const MAX_W = 1100;
 const MAX_H = 2000;
@@ -97,26 +100,31 @@ const [loading, setLoading] = useState(false);
 
     fabric.FabricImage.fromURL(imageSrc, { crossOrigin: "anonymous" })
       .then((img) => {
-        if (cancelled) return;
-        const w = img.width ?? MAX_W;
-        const h = img.height ?? MAX_H;
-        const scale = Math.min(MAX_W / w, MAX_H / h, 1);
-        userImageRef.current = img;
-        img.scale(scale);
-        img.set({
-          selectable: false,
-          evented: false,
-          originX: "center",
-          originY: "center",
-        });
-        c.add(img);
-        c.sendObjectToBack(img);
-        c.setDimensions({ width: w * scale, height: h * scale });
-        c.requestRenderAll();
-    setLoading(false);   // ← add this
+  if (cancelled) return;
+  const w = img.width ?? MAX_W;
+  const h = img.height ?? MAX_H;
+  const scale = Math.min(MAX_W / w, MAX_H / h, 1);
+  userImageRef.current = img;
+  img.scale(scale);
+  img.set({
+    selectable: false,
+    evented: false,
+    originX: "center",
+    originY: "center",
+  });
+  c.add(img);
+  c.sendObjectToBack(img);
+  c.setDimensions({ width: w * scale, height: h * scale });
+  c.requestRenderAll();
+  setLoading(false);
+  setHasImage(true);
 
-        setHasImage(true);
-      })
+  // ← after the next render, useLayoutEffect will define the real fit().
+  //   rAF fires after that, so fitRef.current is ready.
+  requestAnimationFrame(() => {
+    fitRef.current();
+  });
+})
       .catch(() => {    setLoading(false);   // ← add this so failed URL loads don't leave spinner spinning
  });
 
@@ -162,7 +170,7 @@ const [loading, setLoading] = useState(false);
     }
   }, [tool, color]);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!hasImage) return;
     const c = fabricRef.current;
     const userImg = userImageRef.current;
@@ -189,9 +197,12 @@ const [loading, setLoading] = useState(false);
         });
       }
 
-      // Container's actual measured size → fit zoom, then layer user zoom on top
+      // wrap.clientHeight grows with the canvas content (body is min-h-full),
+      // so on first load and zoom-in it reads oversized and fitZoom caps at 1.
+      // Use viewport-relative height from wrap's top to viewport bottom instead.
+      const wrapTop = Math.max(0, wrap.getBoundingClientRect().top);
       const availW = wrap.clientWidth - 24;
-      const availH = wrap.clientHeight - 24;
+      const availH = window.innerHeight - wrapTop - 24;
       const fitZoom = Math.min(availW / framedW, availH / framedH, 1);
       const z = Math.max(0.1, fitZoom * zoom);
 
@@ -206,6 +217,7 @@ const [loading, setLoading] = useState(false);
     };
 
     fitRef.current = fit;
+    fit();
     const ro = new ResizeObserver(fit);
     ro.observe(wrap);
     return () => ro.disconnect();
@@ -263,14 +275,7 @@ setLoading(true);
 
 
 
-if (!imageSrc) {
-  return (
-    <UploadScreen
-      onLoadFromFile={uploadFromFile}
-      onLoadFromUrl={uploadFromURL}
-    />
-  );
-}
+
 
   if (!imageSrc) {
     return (
@@ -367,7 +372,7 @@ if (!imageSrc) {
   const cancel = () => {
     setImageSrc(null);
     setFilename("");
-    setTool("select");
+    setTool("pen");
     setZoom(1);
     setHasImage(false);
     setPadding(0);
@@ -515,6 +520,16 @@ if (!imageSrc) {
     else localStorage.removeItem(STORAGE.BG_IMAGE);
   };
 
+
+  //   if(loading) return  (
+      
+  //   <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+  //     <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground">
+  //       <Spinner className="size-8 text-primary" />
+  //       <span>Loading image…</span>
+  //     </div>
+  //   </div>
+  // )
   return (
     <div className="flex flex-1 flex-col">
       <EditorToolbar
@@ -533,6 +548,8 @@ if (!imageSrc) {
         onCrop={enterCrop}
 
       />
+      {/* <ReloadConfirmGuard onConfirm={cancel} /> */}
+
       <BackgroundDialog
         open={bgDialogOpen}
         onOpenChange={setBgDialogOpen}
@@ -601,15 +618,11 @@ if (!imageSrc) {
       </div>
 
       <div className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3   px-4 py-3  lg:hidden  bg-[transparent]">
-        <button
-          type="button"
-          onClick={cancel}
-          className="text-sm font-medium text-muted-foreground hover:text-foreground"
-        >
-          Cancel
-        </button>
+       <DiscardChangesDialog onConfirm={cancel} />
+
         <SaveMenu onSave={save} filename={filename} menuPlacement="top"/>
       </div>
+      
     </div>
   );
 }

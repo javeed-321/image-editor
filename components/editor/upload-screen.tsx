@@ -27,6 +27,7 @@ export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
   const [isDragging, setIsDragging] = useState(false);
   const [showUrlDialog, setShowUrlDialog] = useState(false);
   const [urlInput, setUrlInput] = useState("");
+const [urlError, setUrlError] = useState<string | null>(null);
 
   const pickFiles = (files: FileList | null) => {
     const file = files?.[0];
@@ -34,19 +35,27 @@ export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
     onLoadFromFile(file);
   };
   const [loading, setLoading] = useState(false);
+const handleUrlSubmit = () => {
+  const trimmed = urlInput.trim();
+  if (!trimmed) return;
+  setLoading(true);
+  setUrlError(null);
 
-  const handleUrlSubmit = () => {
-    const trimmed = urlInput.trim();
-    if (!trimmed) return;
-    setLoading(true);
-    // simulate a brief load then hand off
-    
-      onLoadFromUrl(trimmed);
-      setShowUrlDialog(false);
-      setUrlInput("");
-      setLoading(false);
-   
+  const probe = new Image();
+  probe.crossOrigin = "anonymous";
+  probe.onload = () => {
+    setLoading(false);
+    onLoadFromUrl(trimmed);
+    setShowUrlDialog(false);
+    setUrlInput("");
   };
+  probe.onerror = () => {
+    setLoading(false);
+    setShowUrlDialog(false);
+    setUrlError("Image is not downloadable. Check the URL or try another image.");
+  };
+  probe.src = trimmed;
+};
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center px-3 py-6 sm:px-4 sm:py-10">
@@ -145,6 +154,10 @@ export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
         className="hidden"
         onChange={(e) => pickFiles(e.target.files)}
       />
+
+{urlError && (
+  <p className="text-sm text-destructive mt-3">{urlError}</p>
+)}
 
       {/* URL Dialog */}
       <Dialog open={showUrlDialog} onOpenChange={setShowUrlDialog}>

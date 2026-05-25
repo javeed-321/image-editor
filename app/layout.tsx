@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { PromoBadge } from "@/components/promo-badge";
+import { JsonLd } from "@/components/json-ld";
+import { siteUrl } from "@/lib/site";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -20,14 +22,89 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ImageEditor",
-  description: "A browser-based image editor built with Next.js and fabric.js.",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "ImageEditor — Edit Text on Screenshots Online",
+    template: "%s | ImageEditor",
+  },
+  description:
+    "Free online screenshot editor. Edit, annotate, and erase text on screenshots in your browser — no signup, no install.",
+  applicationName: "ImageEditor",
+  keywords: [
+    "screenshot editor",
+    "edit text on screenshot",
+    "annotate screenshots",
+    "online image editor",
+    "image annotation",
+    "remove text from screenshot",
+    "screenshot markup tool",
+  ],
+  category: "productivity",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    siteName: "ImageEditor",
+    title: "ImageEditor — Edit Text on Screenshots Online",
+    description:
+      "Edit and annotate text on screenshots effortlessly online. Free, browser-based, no signup.",
+    url: "/",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ImageEditor — Edit Text on Screenshots Online",
+    description:
+      "Edit and annotate text on screenshots effortlessly online. Free, browser-based, no signup.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a0a" },
+  ],
+};
+
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "ImageEditor",
+  url: siteUrl,
+  logo: `${siteUrl}/icon.png`,
+};
+
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "ImageEditor",
+  url: siteUrl,
+  inLanguage: "en-US",
+  publisher: {
+    "@type": "Organization",
+    name: "ImageEditor",
+    url: siteUrl,
+  },
 };
 
 export default function RootLayout({
@@ -41,6 +118,8 @@ export default function RootLayout({
       className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-background">
+        <JsonLd data={organizationSchema} />
+        <JsonLd data={websiteSchema} />
         <main className="flex flex-1 flex-col">{children}</main>
         <PromoBadge />
       </body>

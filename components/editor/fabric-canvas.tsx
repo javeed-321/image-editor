@@ -1,6 +1,7 @@
 "use client";
+import { Spinner } from "@/components/ui/spinner";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef,useLayoutEffect, useState } from "react";
 import * as fabric from "fabric";
 import { Check, X } from "lucide-react";
 
@@ -67,6 +68,7 @@ export default function FabricCanvas() {
   const [padding, setPadding] = useState<number>(0);
   const [bgColor, setBgColor] = useState<string>("#ffffff");
   const [bgDialogOpen, setBgDialogOpen] = useState<boolean>(false);
+const [loading, setLoading] = useState(false);
 
 
 
@@ -111,10 +113,12 @@ export default function FabricCanvas() {
         c.sendObjectToBack(img);
         c.setDimensions({ width: w * scale, height: h * scale });
         c.requestRenderAll();
+    setLoading(false);   // ← add this
 
         setHasImage(true);
       })
-      .catch(() => { });
+      .catch(() => {    setLoading(false);   // ← add this so failed URL loads don't leave spinner spinning
+ });
 
     c.on("path:created", pushHistory);
     c.on("object:modified", pushHistory);
@@ -158,7 +162,7 @@ export default function FabricCanvas() {
     }
   }, [tool, color]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!hasImage) return;
     const c = fabricRef.current;
     const userImg = userImageRef.current;
@@ -233,6 +237,8 @@ export default function FabricCanvas() {
 
 
   const uploadFromFile = (file: File) => {
+      setLoading(true);
+
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result as string;
@@ -241,18 +247,30 @@ export default function FabricCanvas() {
       safeSet(STORAGE.USER_IMAGE, dataUrl);   // ← new
       safeSet(STORAGE.FILENAME, file.name);   // ← new
     };
+  reader.onerror = () => setLoading(false);   // ← so the spinner can't get stuck
 
     reader.readAsDataURL(file);
   };
 
 
   const uploadFromURL = (url: string) => {
-    setImageSrc(url);
-    setFilename(url.split("/").pop() || "image");
+setLoading(true);
+  setImageSrc(url);
+  setFilename(url.split("/").pop() || "image");
+
   }
 
 
 
+
+if (!imageSrc) {
+  return (
+    <UploadScreen
+      onLoadFromFile={uploadFromFile}
+      onLoadFromUrl={uploadFromURL}
+    />
+  );
+}
 
   if (!imageSrc) {
     return (
@@ -475,7 +493,7 @@ export default function FabricCanvas() {
 
 
 
-  const save = (targetW?: number) => {
+  const save = (targetW?: number,nameOfFile?:string) => {
     const c = fabricRef.current;
     if (!c) return;
     const z = c.getZoom() || 1;
@@ -486,7 +504,8 @@ export default function FabricCanvas() {
     const data = c.toDataURL({ format: "png", multiplier });
     const a = document.createElement("a");
     a.href = data;
-    a.download = filename || "edited.png";
+    
+    a.download = nameOfFile || "edited.png";
     a.click();
   };
 
@@ -513,7 +532,6 @@ export default function FabricCanvas() {
         onRotate={rotate}
         onCrop={enterCrop}
 
-
       />
       <BackgroundDialog
         open={bgDialogOpen}
@@ -528,6 +546,18 @@ export default function FabricCanvas() {
         <div className="overflow-hidden rounded-lg border border-border bg-white shadow-sm">
           <canvas ref={canvasElRef} />
         </div>
+
+
+  {/* ← add this overlay */}
+  {loading && (
+    <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+      <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground">
+        <Spinner className="size-8 text-primary" />
+        <span>Loading image…</span>
+      </div>
+    </div>
+  )}
+
         <div className="fixed bottom-15 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-card p-1 shadow-md md:bottom-6">
           <button
             type="button"
@@ -578,8 +608,7 @@ export default function FabricCanvas() {
         >
           Cancel
         </button>
-        <SaveMenu onSave={save} menuPlacement="top"         filename={filename}
- />
+        <SaveMenu onSave={save} filename={filename} menuPlacement="top"/>
       </div>
     </div>
   );

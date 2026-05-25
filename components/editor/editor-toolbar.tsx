@@ -52,7 +52,7 @@ type Props = {
   onColorChange: (color: string) => void;
   onDelete: () => void;
   onCancel: () => void;
-  onSave: (targetW?: number) => void;
+  onSave: (targetW?: number,filename?:string) => void;
   onRotate: () => void;
   onOpenBackground: () => void;
     onCrop: () => void;
@@ -72,7 +72,7 @@ export function EditorToolbar({
   onSave,
   onOpenBackground,
   onRotate,
-  onCrop
+  onCrop,
 }: Props) {
   const [showColors, setShowColors] = useState(false);
   const colorBtnRef = useRef<HTMLDivElement>(null);
@@ -214,7 +214,7 @@ export function EditorToolbar({
         >
           Cancel
         </button>
-        <SaveMenu onSave={onSave} />
+        <SaveMenu onSave={onSave} filename={filename} />
       </div>
     </div>
   );

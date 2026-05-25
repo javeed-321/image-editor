@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Download } from "lucide-react";
+import { Download } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export type ExportSize = {
   label: string;
@@ -24,22 +26,29 @@ export const EXPORT_SIZES: ExportSize[] = [
 ];
 
 type Props = {
-  onSave: (width?: number) => void;
+  onSave: (width?: number, filename?: string) => void;
   sizes?: ExportSize[];
-  /** Whether the menu should open upwards (e.g. for the mobile bottom bar). */
+  filename?: string;
+  /** Where to open the panel relative to the button. */
   menuPlacement?: "top" | "bottom";
-  filename:string ;
 };
 
 export function SaveMenu({
   onSave,
   sizes = EXPORT_SIZES,
+  filename = "",
   menuPlacement = "bottom",
-filename
 }: Props) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const [downloadFileName, setDownloadFileName] = useState(filename);
 
+  // Reset filename to current image name each time the panel opens.
+  useEffect(() => {
+    if (open) setDownloadFileName(filename || "untitled");
+  }, [open, filename]);
+
+  // Close on outside click.
   useEffect(() => {
     if (!open) return;
     const onDocClick = (e: MouseEvent) => {
@@ -50,49 +59,61 @@ filename
   }, [open]);
 
   const menuPos =
-    menuPlacement === "top"
-      ? "bottom-full mb-2"
-      : "top-full mt-2";
+    menuPlacement === "top" ? "bottom-full mb-2" : "top-full mt-2";
+
+  const pick = (w: number) => {
+    onSave(w || undefined, downloadFileName);
+    setOpen(false);
+  };
 
   return (
-    <div ref={wrapRef} className="relative inline-flex bg-transparent">
+    <div ref={wrapRef} className="relative inline-flex">
       <Button onClick={() => setOpen((v) => !v)} className="px-4">
         <Download className="size-4" />
         Save
       </Button>
-     { /* <Button
-        type="button"
-        className="rounded-l-none border-l border-primary-foreground/30 px-2 mr-0"
-        onClick={() => setOpen((v) => !v)}
-        aria-haspopup="menu"
-        aria-expanded={open}
-        aria-label="Save options"
-      >
-        <ChevronDown className="size-4 -ml-3" />
-      </Button> */ }
+
       {open && (
         <div
           role="menu"
-          className={`absolute right-0 z-30 w-56 overflow-hidden rounded-xl border border-border bg-card text-left shadow-lg ${menuPos}`}
+          className={`absolute right-0 z-30 w-64 rounded-xl border border-border bg-card p-3 shadow-lg ${menuPos}`}
         >
-          <input value={filename}  />
-          {sizes.map((size) => (
-            <button
-              key={size.label}
-              type="button"
-              role="menuitem"
-              className="flex w-full items-center justify-between px-3 py-2 text-sm hover:bg-muted"
-              onClick={() => {
-                setOpen(false);
-                onSave(size.w || undefined);
-              }}
-            >
-              <span>{size.label}</span>
-              <span className="text-xs text-muted-foreground">
-                {size.w ? `${size.w}×${size.h}` : "As is"}
-              </span>
-            </button>
-          ))}
+          <div className="space-y-1.5">
+            <Label htmlFor="export-filename" className="text-xs">
+              File name
+            </Label>
+            <div className="flex items-center rounded-md border border-border bg-background focus-within:ring-2 focus-within:ring-ring">
+              <Input
+                id="export-filename"
+                value={downloadFileName}
+                onChange={(e) => setDownloadFileName(e.target.value)}
+                placeholder="untitled"
+                autoFocus
+                className="h-8 border-0 shadow-none focus-visible:ring-0"
+              />
+              {/* <span className="pr-2 text-xs text-muted-foreground">.png</span> */}
+            </div>
+          </div>
+
+          <div className="mt-3 space-y-1">
+            <Label className="text-xs">Size</Label>
+            <div className="-mx-1">
+              {sizes.map((size) => (
+                <button
+                  key={size.label}
+                  type="button"
+                  role="menuitem"
+                  onClick={() => pick(size.w)}
+                  className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-sm transition-colors hover:bg-muted"
+                >
+                  <span className="font-medium">{size.label}</span>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {size.w ? `${size.w}×${size.h}` : "As is"}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </div>

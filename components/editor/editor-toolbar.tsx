@@ -3,16 +3,14 @@
 import { useRef, useState } from "react";
 import {
   ArrowUpRight,
-  ChevronDown,
   Circle as CircleIcon,
-  Download,
   Pen,
   Redo2,
   RotateCw,
   Square,
   Trash2,
   Type,
-  Undo2, Crop, Highlighter, EyeOff, X
+  Undo2, Crop, Highlighter, EyeOff,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -65,8 +63,6 @@ type Props = {
   cropMode?: boolean;
   naturalWidth: number;
   naturalHeight: number;
-  highlightSize: number;
-  onHighlightSizeChange: (size: number) => void;
 };
 
 import { DiscardChangesDialog } from "./discard-changes";
@@ -95,20 +91,12 @@ export function EditorToolbar({
   cropMode = false,
   naturalWidth,
   naturalHeight,
-  highlightSize,
-  onHighlightSizeChange,
 }: Props) {
   const [showColors, setShowColors] = useState(false);
   const colorBtnRef = useRef<HTMLDivElement>(null);
   const [colorPopupStyle, setColorPopupStyle] = useState<React.CSSProperties>({});
-  const [showHighlightSize, setShowHighlightSize] = useState(false);
 
   const handleToolChange = (newTool: Tool) => {
-    if (newTool === "highlight") {
-      setShowHighlightSize(true);
-    } else {
-      setShowHighlightSize(false);
-    }
     onTool(newTool);
   };
 
@@ -139,48 +127,6 @@ export function EditorToolbar({
         <div className="inline-flex items-center gap-1 rounded-2xl border border-border bg-background p-1 shadow-lg md:w-auto">
           {SHAPE_TOOLS.map(({ id, label, Icon }) => {
             const active = tool === id;
-
-            if (id === "highlight") {
-              return (
-                <div key={id} className="relative">
-                  <ToolButton
-                    label={label}
-                    active={active}
-                    onClick={() => handleToolChange(id)}
-                  >
-                    <Icon className={cn("size-5", active && "stroke-[2.5]")} />
-                  </ToolButton>
-
-                  {showHighlightSize && (
-                    <div className="absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-border bg-card px-3 py-2 shadow-lg">
-                      <span className="text-xs text-muted-foreground">Size</span>
-                      <input
-                        type="range"
-                        min={4}
-                        max={80}
-                        value={highlightSize}
-                        onChange={(e) =>
-                          onHighlightSizeChange(Number(e.target.value))
-                        }
-                        className="w-28 sm:w-40"
-                      />
-                      <span className="w-6 text-right text-xs tabular-nums">
-                        {highlightSize}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setShowHighlightSize(false)}
-                        className="ml-1 rounded-md p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                        title="Close"
-                      >
-                        <X className="size-3.5" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              );
-            }
-
             return (
               <ToolButton
                 key={id}

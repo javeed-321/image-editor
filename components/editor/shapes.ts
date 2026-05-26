@@ -1,16 +1,28 @@
   import * as fabric from "fabric";
 
-  export function addText(canvas: fabric.Canvas, color: string) {
-    const t = new fabric.IText("Edit me", {
-      left: 60,
-      top: 60,
-      fontSize: 22,
-      fill: color,
-    });
-    canvas.add(t);
-    canvas.setActiveObject(t);
-    canvas.requestRenderAll();
-  }
+export function addText(
+  canvas: fabric.Canvas,
+  color: string,
+  fontSize: number,
+  fontFamily = "Arial",
+  fontBold = false,
+  fontItalic = false,
+  fontUnderline = false,
+) {
+  const t = new fabric.IText("Edit me", {
+    left: 60,
+    top: 60,
+    fontSize,
+    fill: color,
+    fontFamily,
+    fontWeight: fontBold ? "bold" : "normal",
+    fontStyle: fontItalic ? "italic" : "normal",
+    underline: fontUnderline,
+  });
+  canvas.add(t);
+  canvas.setActiveObject(t);
+  canvas.requestRenderAll();
+}
 
   export function addRect(canvas: fabric.Canvas, color: string) {
     const r = new fabric.Rect({

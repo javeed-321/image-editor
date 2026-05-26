@@ -10,29 +10,16 @@ import { SaveMenu } from "./save-menu";
 import { addArrow, addCircle, addRect, addText } from "./shapes";
 import { UploadScreen } from "./upload-screen";
 
-
+import {STORAGE,safeSet} from "@/lib/utils"
 import { DiscardChangesDialog } from "./discard-changes";
 
-
-const MAX_W = 1100;
-const MAX_H = 2000;
 
 export default function FabricCanvas() {
 
 
-  const STORAGE = {
-    USER_IMAGE: "editor.userImage",
-    BG_IMAGE: "editor.bgImage",
-    FILENAME: "editor.filename",
-  };
+  
 
-  const safeSet = (key: string, value: string) => {
-    try {
-      localStorage.setItem(key, value);
-    } catch (e) {
-      console.warn(`localStorage failed for ${key}:`, e);
-    }
-  };
+ 
 
   const canvasElRef = useRef<HTMLCanvasElement>(null);
   const canvasWrapRef = useRef<HTMLDivElement>(null);
@@ -67,14 +54,21 @@ export default function FabricCanvas() {
   const [color, setColor] = useState<string>("#ef4444");
   const [zoom, setZoom] = useState<number>(1);
   const [hasImage, setHasImage] = useState<boolean>(false);
-  const [padding, setPadding] = useState<number>(0);
+const [padding, setPadding] = useState<number>(0);
+
+// 
+const handlePaddingChange = (next: number) => {
+  setPadding(next);
+  // safeSet(STORAGE.PADDING, String(next));
+};
+
+
   const [bgColor, setBgColor] = useState<string>("#ffffff");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(() =>
+    typeof window !== "undefined" && !!localStorage.getItem(STORAGE.USER_IMAGE)
+  );
 
-
-
-
-
+  const [cornerRadius, setCornerRadius] = useState<number>(0);
 
 
 
@@ -96,52 +90,43 @@ export default function FabricCanvas() {
     });
     fabricRef.current = c;
 
-     const loadImage = async () => {
-    try {
-      const img = await fabric.FabricImage.fromURL(imageSrc, { crossOrigin: "anonymous" });
+    const loadImage = async () => {
+      try {
+        const img = await fabric.FabricImage.fromURL(imageSrc, { crossOrigin: "anonymous" });
 
-      if (cancelled) return;
+        if (cancelled) return;
 
-      const w = img.width ?? MAX_W;
-      const h = img.height ?? MAX_H;
-      const scale = Math.min(MAX_W / w, MAX_H / h, 1);
-      userImageRef.current = img;
-      img.scale(scale);
+        const w = img.width ?? STORAGE.MAX_W;
+        const h = img.height ?? STORAGE.MAX_H;
+        const scale = Math.min(STORAGE.MAX_W / w, STORAGE.MAX_H / h, 1);
+        userImageRef.current = img;
+        img.scale(scale);
 
-      const radius = 40;
-      img.clipPath = new fabric.Rect({
-        width: img.width ?? 0,
-        height: img.height ?? 0,
-        rx: radius,
-        ry: radius,
-        originX: "center",
-        originY: "center",
-      });
+        img.set({
+          selectable: false,
+          evented: false,
+          originX: "center",
+          originY: "center",
+        });
 
-      img.set({
-        selectable: false,
-        evented: false,
-        originX: "center",
-        originY: "center",
-      });
+        c.add(img);
+        c.sendObjectToBack(img);
+        c.setDimensions({ width: w * scale, height: h * scale });
+        c.requestRenderAll();
+        setLoading(false);
+        setHasImage(true);
 
-      c.add(img);
-      c.sendObjectToBack(img);
-      c.setDimensions({ width: w * scale, height: h * scale });
-      c.requestRenderAll();
-      setLoading(false);
-      setHasImage(true);
-
-      requestAnimationFrame(() => {
-        fitRef.current();
-      });
-    } catch {
-      setLoading(false);
-    }
-    finally {
-      setLoading(false);
-    }
-  };
+        requestAnimationFrame(() => {
+          fitRef.current();
+        });
+      } catch {
+        setLoading(false);
+        console.log("Failed to load image in fabric canvas");
+      }
+      finally {
+        setLoading(false);
+      }
+    };
     loadImage();
 
     c.on("path:created", pushHistory);
@@ -153,6 +138,41 @@ export default function FabricCanvas() {
       fabricRef.current = null;
     };
   }, [imageSrc, pushHistory]);
+
+
+  // this code is for the round corners taking from user 
+
+  useEffect(() => {
+    if (!hasImage) return;
+    const c = fabricRef.current;
+    const img = userImageRef.current;
+    if (!c || !img) return;
+
+   img.set({
+  clipPath:
+    cornerRadius > 0
+      ? new fabric.Rect({
+          width: img.width ?? 0,
+          height: img.height ?? 0,
+          rx: cornerRadius,
+          ry: cornerRadius,
+          originX: "center",
+          originY: "center",
+        })
+      : undefined,
+});
+img.dirty = true;
+
+
+    img.setCoords();
+    c.requestRenderAll();
+    fitRef.current?.();
+  }, [cornerRadius, hasImage]);
+
+
+  // this code ends here 
+
+
 
   useEffect(() => {
     const c = fabricRef.current;
@@ -168,7 +188,7 @@ export default function FabricCanvas() {
       const brush = new fabric.PencilBrush(c);
       brush.color = "rgba(253, 224, 71, 0.4)";   // #fde047 @ 40% opacity
 
-      brush.width = 20;
+      brush.width = 30;
       // ← thicker
       c.freeDrawingBrush = brush;
     }
@@ -272,20 +292,35 @@ export default function FabricCanvas() {
       const dataUrl = reader.result as string;
       setImageSrc(dataUrl);
       setFilename(file.name);
-      safeSet(STORAGE.USER_IMAGE, dataUrl);   // ← new
-      safeSet(STORAGE.FILENAME, file.name);   // ← new
+
+      if (file.size > STORAGE.MAX_LOCALSTORAGE_SIZE_BYTES) {
+        const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+        console.error(
+          `Image is ${sizeMb} MB (max ${STORAGE.MAX_LOCALSTORAGE_SIZE_MB} MB). Not persisted to localStorage — will be lost on reload.`,
+        );
+        return;
+      }
+
+      safeSet(STORAGE.USER_IMAGE, dataUrl);
+      safeSet(STORAGE.FILENAME, file.name);
+      setLoading(false);
     };
-    reader.onerror = () => setLoading(false);   // ← so the spinner can't get stuck
+    reader.onerror = () => setLoading(false);
 
     reader.readAsDataURL(file);
   };
 
 
+
   const uploadFromURL = (url: string) => {
     setLoading(true);
     setImageSrc(url);
-    setFilename(url.split("/").pop() || "image");
+    const name = url.split("/").pop() || "image";
+    setFilename(name);
+    safeSet(STORAGE.USER_IMAGE, url);
+    safeSet(STORAGE.FILENAME, name);
 
+    setLoading(false);
   }
 
 
@@ -301,6 +336,9 @@ export default function FabricCanvas() {
       />
     );
   }
+
+
+
 
   const handleTool = (id: Tool) => {
     setTool(id);
@@ -537,15 +575,7 @@ export default function FabricCanvas() {
   };
 
 
-  //   if(loading) return  (
 
-  //   <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-  //     <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground">
-  //       <Spinner className="size-8 text-primary" />
-  //       <span>Loading image…</span>
-  //     </div>
-  //   </div>
-  // )
   return (
     <div className="flex flex-1 flex-col">
       <EditorToolbar
@@ -564,9 +594,11 @@ export default function FabricCanvas() {
         padding={padding}
         bgColor={bgColor}
         bgImageUrl={bgImageUrl}
-        onPaddingChange={setPadding}
+        onPaddingChange={handlePaddingChange}
         onBgColorChange={setBgColor}
         onBgImageChange={handleBgImgChange}
+        setCornerRadius={setCornerRadius}
+        cornerRadius={cornerRadius}
       />
       {/* <ReloadConfirmGuard onConfirm={cancel} /> */}
       <div ref={canvasWrapRef} className="relative flex flex-1 items-center justify-center overflow-auto bg-muted/30 px-2 py-4 pb-20 sm:px-4 sm:py-6 md:pb-6">
@@ -580,7 +612,7 @@ export default function FabricCanvas() {
           <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/80 backdrop-blur-sm">
             <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground">
               <Spinner className="size-8 text-primary" />
-              <span>Loading image…</span>
+              {/* <span>Loading image…</span> */}
             </div>
           </div>
         )}
@@ -639,19 +671,3 @@ export default function FabricCanvas() {
 
 
 
-// ┌──────────────────────────────────────────┐
-// │ React component (FabricCanvas)           │
-// │  ┌────────────────────────────────────┐  │
-// │  │ fabric.Canvas (scene graph)        │  │ ← fabricRef.current
-// │  │  • IText "Edit me"                 │  │
-// │  │  • Rect at (80, 80) size 160×110   │  │
-// │  │  • PencilBrush path                │  │
-// │  │  • FabricImage (background)        │  │
-// │  │           │                        │  │
-// │  │           ▼ draws onto             │  │
-// │  │  ┌──────────────────────────────┐  │  │
-// │  │  │ <canvas>  (raw pixels)       │  │  │ ← canvasElRef.current
-// │  │  │ a DOM element                │  │  │
-// │  │  └──────────────────────────────┘  │  │
-// │  └────────────────────────────────────┘  │
-// └──────────────────────────────────────────┘

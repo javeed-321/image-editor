@@ -28,10 +28,17 @@ export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
   const [showUrlDialog, setShowUrlDialog] = useState(false);
   const [urlInput, setUrlInput] = useState("");
 const [urlError, setUrlError] = useState<string | null>(null);
+const [fileError, setFileError] = useState<string | null>(null);
 
   const pickFiles = (files: FileList | null) => {
     const file = files?.[0];
-    if (!file || !file.type.startsWith("image/")) return;
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setFileError("Please choose an image file (PNG, JPG, GIF, or WebP).");
+      return;
+    }
+   
+    setFileError(null);
     onLoadFromFile(file);
   };
   const [loading, setLoading] = useState(false);
@@ -102,8 +109,9 @@ const handleUrlSubmit = () => {
               onClick={() => setShowMenu((v) => !v)}
               aria-haspopup="menu"
               aria-expanded={showMenu}
+              aria-label="More upload options"
             >
-              <ChevronDown className="size-4" />
+              <ChevronDown className="size-4" aria-hidden="true" />
             </Button>
             {showMenu && (
               <div
@@ -155,6 +163,9 @@ const handleUrlSubmit = () => {
         onChange={(e) => pickFiles(e.target.files)}
       />
 
+{fileError && (
+  <p className="text-sm text-destructive mt-3">{fileError}</p>
+)}
 {urlError && (
   <p className="text-sm text-destructive mt-3">{urlError}</p>
 )}

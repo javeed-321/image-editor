@@ -72,6 +72,7 @@ export default function Home() {
     <section className="flex flex-1 flex-col">
       <JsonLd data={webApplicationSchema} />
       <JsonLd data={breadcrumbSchema} />
+       
       <Editor />
     </section>
   );

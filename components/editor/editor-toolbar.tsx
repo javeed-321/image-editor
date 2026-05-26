@@ -61,6 +61,8 @@ type Props = {
   onPaddingChange: (padding: number) => void;
   onBgColorChange: (color: string) => void;
   onBgImageChange: (url: string | null) => void;
+  setCornerRadius: (radius: number) => void;
+  cornerRadius: number;
 };
 import { DiscardChangesDialog } from "./discard-changes";
 
@@ -83,6 +85,8 @@ export function EditorToolbar({
   onPaddingChange,
   onBgColorChange,
   onBgImageChange,
+  setCornerRadius,
+  cornerRadius,
 }: Props) {
   const [showColors, setShowColors] = useState(false);
   const colorBtnRef = useRef<HTMLDivElement>(null);
@@ -115,7 +119,6 @@ export function EditorToolbar({
         </span>
         {/* <ChevronDown className="size-4 shrink-0 text-muted-foreground" /> */}
       </div>
-
       <div className="-mx-3 flex-1 overflow-x-auto scrollbar-hide  px-3 md:mx-auto md:flex-none md:overflow-visible md:px-0">
         <div className="inline-flex items-center  gap-1 rounded-2xl border border-border bg-background p-1 shadow-lg md:w-auto ">
           {SHAPE_TOOLS.map(({ id, label, Icon }) => {
@@ -213,6 +216,8 @@ export function EditorToolbar({
             onPaddingChange={onPaddingChange}
             onBgColorChange={onBgColorChange}
             onBgImageChange={onBgImageChange}
+            cornerRadius={cornerRadius}
+            setCornerRadius={setCornerRadius}
           />
 
           <ToolButton label="Delete" onClick={onDelete}>

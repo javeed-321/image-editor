@@ -32,6 +32,10 @@ type Props = {
   onPaddingChange: (padding: number) => void;
   onBgColorChange: (color: string) => void;
   onBgImageChange: (url: string | null) => void;
+    setCornerRadius: (radius: number) => void;
+  cornerRadius: number;
+
+  
 };
 
 export function BackgroundPopover({
@@ -41,6 +45,9 @@ export function BackgroundPopover({
   onPaddingChange,
   onBgColorChange,
   onBgImageChange,
+  setCornerRadius,
+  cornerRadius,
+  
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -82,6 +89,24 @@ export function BackgroundPopover({
               }}
             />
           </div>
+ <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">Corner Radius</label>
+              <span className="text-sm text-muted-foreground">
+                {cornerRadius} px
+              </span>
+            </div>
+            <Slider
+              value={[cornerRadius]}
+              min={0}
+              max={200}
+              step={5}
+              onValueChange={(v) => {
+                const next = Array.isArray(v) ? v[0] : v;
+                setCornerRadius(typeof next === "number" ? next : 0);
+              }}
+            />
+          </div>
 
           <div className="space-y-2">
             <label className="text-sm font-medium">Color</label>
@@ -119,7 +144,7 @@ export function BackgroundPopover({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Background image</label>
+            <label className="text-sm font-medium mr-2">Background image</label>
             {bgImageUrl ? (
               <div className="flex items-center gap-3 rounded-lg border border-border p-2">
                 <div

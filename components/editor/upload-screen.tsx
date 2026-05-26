@@ -1,7 +1,24 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { ChevronDown, Link as LinkIcon, Upload } from "lucide-react";
+import {
+  ArrowUpRight,
+  ChevronDown,
+  Circle as CircleIcon,
+  Crop,
+  EyeOff,
+  Frame,
+  Highlighter,
+  Link as LinkIcon,
+  Pen,
+  Redo2,
+  RotateCw,
+  Square,
+  Trash2,
+  Type,
+  Undo2,
+  Upload,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -16,10 +33,28 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Spinner } from "../ui/spinner";
 
+const PREVIEW_SHAPE_TOOLS = [
+  { id: "pen", label: "Pen", Icon: Pen },
+  { id: "text", label: "Text", Icon: Type },
+  { id: "highlight", label: "Highlight", Icon: Highlighter },
+  { id: "blur", label: "Blur", Icon: EyeOff },
+  { id: "rect", label: "Rectangle", Icon: Square },
+  { id: "circle", label: "Circle", Icon: CircleIcon },
+  { id: "arrow", label: "Arrow", Icon: ArrowUpRight },
+];
+
+const PREVIEW_ACTION_TOOLS = [
+  { id: "crop", label: "Crop", Icon: Crop },
+  { id: "rotate", label: "Rotate", Icon: RotateCw },
+  { id: "background", label: "Background", Icon: Frame },
+  { id: "delete", label: "Delete", Icon: Trash2 },
+];
+
 type Props = {
   onLoadFromFile: (file: File) => void;
   onLoadFromUrl: (url: string) => void;
 };
+import { Toaster } from "@/components/ui/sonner"
 
 export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -29,6 +64,14 @@ export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
   const [urlInput, setUrlInput] = useState("");
 const [urlError, setUrlError] = useState<string | null>(null);
 const [fileError, setFileError] = useState<string | null>(null);
+const [previewHint, setPreviewHint] = useState(false);
+const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+const handlePreviewToolClick = () => {
+  setPreviewHint(true);
+  if (hintTimerRef.current) clearTimeout(hintTimerRef.current);
+  hintTimerRef.current = setTimeout(() => setPreviewHint(false), 2000);
+};
 
   const pickFiles = (files: FileList | null) => {
     const file = files?.[0];
@@ -65,7 +108,45 @@ const handleUrlSubmit = () => {
 };
 
   return (
-    <div className="flex flex-1 flex-col items-center justify-center px-3 py-6 sm:px-4 sm:py-10">
+    <div className="flex flex-1 flex-col">
+      <div className="flex items-center gap-3 border-b border-border bg-card px-3 py-2 md:flex-wrap md:gap-4 md:px-4 md:py-3">
+        <div className="hidden min-w-0 items-center gap-1 text-sm font-medium text-muted-foreground md:flex">
+          <span className="max-w-[220px] truncate">Untitled</span>
+        </div>
+        <div className="-mx-3 flex-1 overflow-x-auto scrollbar-hide px-3 md:mx-auto md:flex-none md:overflow-visible md:px-0">
+          <div className="inline-flex items-center gap-1 rounded-2xl border border-border bg-background p-1 shadow-lg md:w-auto">
+            {PREVIEW_SHAPE_TOOLS.map(({ id, label, Icon }) => (
+              <PreviewToolButton key={id} label={label} onClick={handlePreviewToolClick}>
+                <Icon className="size-5" />
+              </PreviewToolButton>
+            ))}
+            <PreviewToolButton label="Color" onClick={handlePreviewToolClick}>
+              <span
+                className="size-5 rounded-full border border-border"
+                style={{ backgroundColor: "#ef4444" }}
+              />
+            </PreviewToolButton>
+            <PreviewDivider />
+            <PreviewToolButton label="Undo" onClick={handlePreviewToolClick}>
+              <Undo2 className="size-5" />
+            </PreviewToolButton>
+            <PreviewToolButton label="Redo" onClick={handlePreviewToolClick}>
+              <Redo2 className="size-5" />
+            </PreviewToolButton>
+            <PreviewDivider />
+            {PREVIEW_ACTION_TOOLS.map(({ id, label, Icon }) => (
+              <PreviewToolButton key={id} label={label} onClick={handlePreviewToolClick}>
+                <Icon className="size-5" />
+              </PreviewToolButton>
+            ))}
+          </div>
+        </div>
+      </div>
+      {previewHint && (
+        <Toaster richColors position="top-center" toastOptions={{ duration: 2000 }} />
+      )}
+
+      <div className="flex flex-1 flex-col items-center justify-center px-3 py-6 sm:px-4 sm:py-10">
       <div
         className={cn(
           "w-full max-w-3xl rounded-2xl border-2 border-dashed bg-card transition-colors sm:rounded-3xl",
@@ -217,6 +298,33 @@ const handleUrlSubmit = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
+}
+
+function PreviewToolButton({
+  label,
+  onClick,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={label}
+      className="flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted"
+    >
+      {children}
+      <span>{label}</span>
+    </button>
+  );
+}
+
+function PreviewDivider() {
+  return <span className="mx-1 h-12 w-px bg-border" aria-hidden />;
 }

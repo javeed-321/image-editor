@@ -1,17 +1,14 @@
 "use client";
 
 import { useRef } from "react";
-import { ImageIcon, Trash2, Upload } from "lucide-react";
+import { Frame, ImageIcon, Trash2, Upload } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
 import { cn } from "@/lib/utils";
 
@@ -29,8 +26,6 @@ const BG_COLORS = [
 ];
 
 type Props = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
   padding: number;
   bgColor: string;
   bgImageUrl: string | null;
@@ -39,9 +34,7 @@ type Props = {
   onBgImageChange: (url: string | null) => void;
 };
 
-export function BackgroundDialog({
-  open,
-  onOpenChange,
+export function BackgroundPopover({
   padding,
   bgColor,
   bgImageUrl,
@@ -60,22 +53,22 @@ export function BackgroundDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Background</DialogTitle>
-          <DialogDescription>
-            Add a padded frame around your image with a custom color or
-            background image.
-          </DialogDescription>
-        </DialogHeader>
+    <Popover>
+      <PopoverTrigger
+        className="flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted"
+        title="Background"
+      >
+        <Frame className="size-5" />
+        <span>Background</span>
+      </PopoverTrigger>
 
+      <PopoverContent align="center" side="bottom" className="w-80 p-4">
         <div className="space-y-5">
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium">Padding</label>
-              <span className="text-sm  text-muted-foreground">
-                {padding} {" "}px
+              <span className="text-sm text-muted-foreground">
+                {padding} px
               </span>
             </div>
             <Slider
@@ -99,8 +92,8 @@ export function BackgroundDialog({
                   type="button"
                   onClick={() => onBgColorChange(co)}
                   className={cn(
-                    "size-7 rounded-full border border-border  hover:scale-110",
-                    bgColor === co && "ring-2  ring-offset-1 bg-primary",
+                    "size-7 rounded-full border border-border hover:scale-110",
+                    bgColor === co && "ring-2 ring-offset-1 bg-primary",
                   )}
                   style={{ backgroundColor: co }}
                   aria-label={co}
@@ -125,12 +118,12 @@ export function BackgroundDialog({
             </div>
           </div>
 
-          <div className="space-y-2 space-x-2 flex-col items-center" >
-            <label className="text-sm font-medium mb-3">Background image</label>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Background image</label>
             {bgImageUrl ? (
               <div className="flex items-center gap-3 rounded-lg border border-border p-2">
                 <div
-                  className="size-12 flex-shrink-1 rounded-md border border-border bg-cover bg-center"
+                  className="size-12 shrink-0 rounded-md border border-border bg-cover bg-center"
                   style={{ backgroundImage: `url(${bgImageUrl})` }}
                 />
                 <div className="flex-1 text-xs text-muted-foreground">
@@ -149,7 +142,6 @@ export function BackgroundDialog({
               <Button
                 variant="outline"
                 onClick={() => fileInputRef.current?.click()}
-                className=""
               >
                 <Upload className="size-4" />
                 Upload image
@@ -168,13 +160,7 @@ export function BackgroundDialog({
             </p>
           </div>
         </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Done
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      </PopoverContent>
+    </Popover>
   );
 }

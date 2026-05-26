@@ -1,11 +1,10 @@
 "use client";
 import { Spinner } from "@/components/ui/spinner";
 
-import { useCallback, useEffect, useRef,useLayoutEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useLayoutEffect, useState } from "react";
 import * as fabric from "fabric";
 import { Check, X } from "lucide-react";
 
-import { BackgroundDialog } from "./background-dialog";
 import { EditorToolbar, type Tool } from "./editor-toolbar";
 import { SaveMenu } from "./save-menu";
 import { addArrow, addCircle, addRect, addText } from "./shapes";
@@ -70,8 +69,7 @@ export default function FabricCanvas() {
   const [hasImage, setHasImage] = useState<boolean>(false);
   const [padding, setPadding] = useState<number>(0);
   const [bgColor, setBgColor] = useState<string>("#ffffff");
-  const [bgDialogOpen, setBgDialogOpen] = useState<boolean>(false);
-const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
 
 
 
@@ -98,35 +96,53 @@ const [loading, setLoading] = useState(false);
     });
     fabricRef.current = c;
 
-    fabric.FabricImage.fromURL(imageSrc, { crossOrigin: "anonymous" })
-      .then((img) => {
-  if (cancelled) return;
-  const w = img.width ?? MAX_W;
-  const h = img.height ?? MAX_H;
-  const scale = Math.min(MAX_W / w, MAX_H / h, 1);
-  userImageRef.current = img;
-  img.scale(scale);
-  img.set({
-    selectable: false,
-    evented: false,
-    originX: "center",
-    originY: "center",
-  });
-  c.add(img);
-  c.sendObjectToBack(img);
-  c.setDimensions({ width: w * scale, height: h * scale });
-  c.requestRenderAll();
-  setLoading(false);
-  setHasImage(true);
+     const loadImage = async () => {
+    try {
+      const img = await fabric.FabricImage.fromURL(imageSrc, { crossOrigin: "anonymous" });
 
-  // ← after the next render, useLayoutEffect will define the real fit().
-  //   rAF fires after that, so fitRef.current is ready.
-  requestAnimationFrame(() => {
-    fitRef.current();
-  });
-})
-      .catch(() => {    setLoading(false);   // ← add this so failed URL loads don't leave spinner spinning
- });
+      if (cancelled) return;
+
+      const w = img.width ?? MAX_W;
+      const h = img.height ?? MAX_H;
+      const scale = Math.min(MAX_W / w, MAX_H / h, 1);
+      userImageRef.current = img;
+      img.scale(scale);
+
+      const radius = 40;
+      img.clipPath = new fabric.Rect({
+        width: img.width ?? 0,
+        height: img.height ?? 0,
+        rx: radius,
+        ry: radius,
+        originX: "center",
+        originY: "center",
+      });
+
+      img.set({
+        selectable: false,
+        evented: false,
+        originX: "center",
+        originY: "center",
+      });
+
+      c.add(img);
+      c.sendObjectToBack(img);
+      c.setDimensions({ width: w * scale, height: h * scale });
+      c.requestRenderAll();
+      setLoading(false);
+      setHasImage(true);
+
+      requestAnimationFrame(() => {
+        fitRef.current();
+      });
+    } catch {
+      setLoading(false);
+    }
+    finally {
+      setLoading(false);
+    }
+  };
+    loadImage();
 
     c.on("path:created", pushHistory);
     c.on("object:modified", pushHistory);
@@ -249,7 +265,7 @@ const [loading, setLoading] = useState(false);
 
 
   const uploadFromFile = (file: File) => {
-      setLoading(true);
+    setLoading(true);
 
     const reader = new FileReader();
     reader.onload = () => {
@@ -259,16 +275,16 @@ const [loading, setLoading] = useState(false);
       safeSet(STORAGE.USER_IMAGE, dataUrl);   // ← new
       safeSet(STORAGE.FILENAME, file.name);   // ← new
     };
-  reader.onerror = () => setLoading(false);   // ← so the spinner can't get stuck
+    reader.onerror = () => setLoading(false);   // ← so the spinner can't get stuck
 
     reader.readAsDataURL(file);
   };
 
 
   const uploadFromURL = (url: string) => {
-setLoading(true);
-  setImageSrc(url);
-  setFilename(url.split("/").pop() || "image");
+    setLoading(true);
+    setImageSrc(url);
+    setFilename(url.split("/").pop() || "image");
 
   }
 
@@ -498,7 +514,7 @@ setLoading(true);
 
 
 
-  const save = (targetW?: number,nameOfFile?:string) => {
+  const save = (targetW?: number, nameOfFile?: string) => {
     const c = fabricRef.current;
     if (!c) return;
     const z = c.getZoom() || 1;
@@ -509,7 +525,7 @@ setLoading(true);
     const data = c.toDataURL({ format: "png", multiplier });
     const a = document.createElement("a");
     a.href = data;
-    
+
     a.download = nameOfFile || "edited.png";
     a.click();
   };
@@ -522,7 +538,7 @@ setLoading(true);
 
 
   //   if(loading) return  (
-      
+
   //   <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/80 backdrop-blur-sm">
   //     <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground">
   //       <Spinner className="size-8 text-primary" />
@@ -543,37 +559,31 @@ setLoading(true);
         onDelete={deleteSelected}
         onCancel={cancel}
         onSave={save}
-        onOpenBackground={() => setBgDialogOpen(true)}
         onRotate={rotate}
         onCrop={enterCrop}
-
-      />
-      {/* <ReloadConfirmGuard onConfirm={cancel} /> */}
-
-      <BackgroundDialog
-        open={bgDialogOpen}
-        onOpenChange={setBgDialogOpen}
         padding={padding}
         bgColor={bgColor}
         bgImageUrl={bgImageUrl}
         onPaddingChange={setPadding}
         onBgColorChange={setBgColor}
-        onBgImageChange={handleBgImgChange} />
+        onBgImageChange={handleBgImgChange}
+      />
+      {/* <ReloadConfirmGuard onConfirm={cancel} /> */}
       <div ref={canvasWrapRef} className="relative flex flex-1 items-center justify-center overflow-auto bg-muted/30 px-2 py-4 pb-20 sm:px-4 sm:py-6 md:pb-6">
         <div className="overflow-hidden rounded-lg border border-border bg-white shadow-sm">
           <canvas ref={canvasElRef} />
         </div>
 
 
-  {/* ← add this overlay */}
-  {loading && (
-    <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground">
-        <Spinner className="size-8 text-primary" />
-        <span>Loading image…</span>
-      </div>
-    </div>
-  )}
+        {/* ← add this overlay */}
+        {loading && (
+          <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+            <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground">
+              <Spinner className="size-8 text-primary" />
+              <span>Loading image…</span>
+            </div>
+          </div>
+        )}
 
         <div className="fixed bottom-15 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-card p-1 shadow-md md:bottom-6">
           <button
@@ -618,11 +628,11 @@ setLoading(true);
       </div>
 
       <div className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3   px-4 py-3  lg:hidden  bg-[transparent]">
-       <DiscardChangesDialog onConfirm={cancel} />
+        <DiscardChangesDialog onConfirm={cancel} />
 
-        <SaveMenu onSave={save} filename={filename} menuPlacement="top"/>
+        <SaveMenu onSave={save} filename={filename} menuPlacement="top" />
       </div>
-      
+
     </div>
   );
 }

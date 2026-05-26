@@ -6,7 +6,6 @@ import {
   ChevronDown,
   Circle as CircleIcon,
   Download,
-  Frame,
   Pen,
   Redo2,
   RotateCw,
@@ -18,6 +17,7 @@ import {
 
 import { cn } from "@/lib/utils";
 import { SaveMenu } from "./save-menu";
+import { BackgroundPopover } from "./background-dialog";
 
 export type Tool = "select" | "pen" | "text" | "blur" | "rect" | "highlight" | "circle" | "arrow";
 
@@ -54,9 +54,13 @@ type Props = {
   onCancel: () => void;
   onSave: (targetW?: number, filename?: string) => void;
   onRotate: () => void;
-  onOpenBackground: () => void;
   onCrop: () => void;
-
+  padding: number;
+  bgColor: string;
+  bgImageUrl: string | null;
+  onPaddingChange: (padding: number) => void;
+  onBgColorChange: (color: string) => void;
+  onBgImageChange: (url: string | null) => void;
 };
 import { DiscardChangesDialog } from "./discard-changes";
 
@@ -71,9 +75,14 @@ export function EditorToolbar({
   onDelete,
   onCancel,
   onSave,
-  onOpenBackground,
   onRotate,
   onCrop,
+  padding,
+  bgColor,
+  bgImageUrl,
+  onPaddingChange,
+  onBgColorChange,
+  onBgImageChange,
 }: Props) {
   const [showColors, setShowColors] = useState(false);
   const colorBtnRef = useRef<HTMLDivElement>(null);
@@ -197,9 +206,14 @@ export function EditorToolbar({
             <RotateCw className="size-5" />
           </ToolButton>
 
-          <ToolButton label="Background" onClick={onOpenBackground}>
-            <Frame className="size-5" />
-          </ToolButton>
+          <BackgroundPopover
+            padding={padding}
+            bgColor={bgColor}
+            bgImageUrl={bgImageUrl}
+            onPaddingChange={onPaddingChange}
+            onBgColorChange={onBgColorChange}
+            onBgImageChange={onBgImageChange}
+          />
 
           <ToolButton label="Delete" onClick={onDelete}>
             <Trash2 className="size-5" />

@@ -7,46 +7,41 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export type ExportSize = {
-  label: string;
-  /** Target width in pixels. 0 = export at the canvas's natural size. */
-  w: number;
-  /** Display-only height; aspect ratio is preserved from the canvas. */
-  h: number;
-};
-
-export const EXPORT_SIZES: ExportSize[] = [
-  { label: "Original", w: 0, h: 0 },
-  { label: "Instagram Post", w: 1080, h: 1080 },
-  { label: "Instagram Story", w: 1080, h: 1920 },
-  { label: "Twitter / X Post", w: 1200, h: 675 },
-  { label: "YouTube Thumbnail", w: 1280, h: 720 },
-  { label: "Full HD", w: 1920, h: 1080 },
-  { label: "Facebook Cover", w: 1200, h: 630 },
+const SCALE_PRESETS = [
+  { label: "Original", scale: 1 },
+  { label: "75%", scale: 0.75 },
+  { label: "50%", scale: 0.5 },
+  { label: "25%", scale: 0.25 },
 ];
 
 type Props = {
   onSave: (width?: number, filename?: string) => void;
-  sizes?: ExportSize[];
   filename?: string;
+  /** Natural canvas dimensions (zoom = 1), used for size previews and the custom-width placeholder. */
+  naturalWidth?: number;
+  naturalHeight?: number;
   /** Where to open the panel relative to the button. */
   menuPlacement?: "top" | "bottom";
 };
 
 export function SaveMenu({
   onSave,
-  sizes = EXPORT_SIZES,
   filename = "",
+  naturalWidth = 0,
+  naturalHeight = 0,
   menuPlacement = "bottom",
 }: Props) {
   const [open, setOpen] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [downloadFileName, setDownloadFileName] = useState(filename);
+  const [customWidth, setCustomWidth] = useState("");
 
-  // Reset filename to current image name each time the panel opens.
+  // Reset filename + custom-width default each time the panel opens.
   useEffect(() => {
-    if (open) setDownloadFileName(filename || "untitled");
-  }, [open, filename]);
+    if (!open) return;
+    setDownloadFileName(filename || "untitled");
+    setCustomWidth(naturalWidth ? String(naturalWidth) : "");
+  }, [open, filename, naturalWidth]);
 
   // Close on outside click.
   useEffect(() => {
@@ -61,58 +56,115 @@ export function SaveMenu({
   const menuPos =
     menuPlacement === "top" ? "bottom-full mb-2" : "top-full mt-2";
 
-  const pick = (w: number) => {
-    onSave(w || undefined, downloadFileName);
+  const downloadAtScale = (scale: number) => {
+    // scale === 1 → undefined width means "use natural canvas size" in fabric-canvas's save()
+    const w = scale === 1 ? undefined : Math.round(scale * naturalWidth);
+    onSave(w, downloadFileName);
     setOpen(false);
   };
 
+  const downloadCustom = () => {
+    const w = Number(customWidth);
+    if (!Number.isFinite(w) || w <= 0) return;
+    onSave(Math.round(w), downloadFileName);
+    setOpen(false);
+  };
+
+  const customWidthNum = Number(customWidth);
+  const customValid = Number.isFinite(customWidthNum) && customWidthNum > 0;
+  const customHeightPreview =
+    customValid && naturalWidth
+      ? Math.round((customWidthNum * naturalHeight) / naturalWidth)
+      : 0;
+
   return (
     <div ref={wrapRef} className="relative inline-flex">
-      <Button onClick={() => setOpen((v) => !v)} className="px-4">
+      <Button
+        onClick={() => setOpen((v) => !v)}
+        className="px-4 transition-colors hover:bg-primary/80"
+      >
         <Download className="size-4" />
-        Save
+        Done
       </Button>
 
       {open && (
         <div
           role="menu"
-          className={`absolute right-0 z-30 w-64 rounded-xl border border-border bg-card p-3 shadow-lg ${menuPos}`}
+          className={`absolute right-0 z-30 w-72 rounded-xl border border-border bg-card p-3 shadow-lg ${menuPos}`}
         >
           <div className="space-y-1.5">
             <Label htmlFor="export-filename" className="text-xs">
               File name
             </Label>
-            <div className="flex items-center rounded-md border border-border bg-background focus-within:ring-2 focus-within:ring-ring">
-              <Input
-                id="export-filename"
-                value={downloadFileName}
-                onChange={(e) => setDownloadFileName(e.target.value)}
-                placeholder="untitled"
-                autoFocus
-                className="h-8 border-0 shadow-none focus-visible:ring-0"
-              />
-              {/* <span className="pr-2 text-xs text-muted-foreground">.png</span> */}
-            </div>
+            <Input
+              id="export-filename"
+              value={downloadFileName}
+              onChange={(e) => setDownloadFileName(e.target.value)}
+              placeholder="untitled"
+              autoFocus
+              className="h-8"
+            />
           </div>
 
           <div className="mt-3 space-y-1">
-            <Label className="text-xs">Size</Label>
+            <Label className="text-xs">Scale</Label>
             <div className="-mx-1">
-              {sizes.map((size) => (
-                <button
-                  key={size.label}
-                  type="button"
-                  role="menuitem"
-                  onClick={() => pick(size.w)}
-                  className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-sm transition-colors hover:bg-muted"
-                >
-                  <span className="font-medium">{size.label}</span>
-                  <span className="text-xs text-muted-foreground tabular-nums">
-                    {size.w ? `${size.w}×${size.h}` : "As is"}
-                  </span>
-                </button>
-              ))}
+              {SCALE_PRESETS.map((p) => {
+                const w = Math.round(p.scale * naturalWidth);
+                const h = Math.round(p.scale * naturalHeight);
+                return (
+                  <button
+                    key={p.label}
+                    type="button"
+                    role="menuitem"
+                    onClick={() => downloadAtScale(p.scale)}
+                    className="flex w-full items-center justify-between rounded-md px-3 py-1.5 text-sm transition-colors hover:bg-muted"
+                  >
+                    <span className="font-medium">{p.label}</span>
+                    <span className="text-xs text-muted-foreground tabular-nums">
+                      {naturalWidth ? `${w}×${h}` : ""}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
+          </div>
+
+          <div className="mt-3 space-y-1.5">
+            <Label htmlFor="custom-width" className="text-xs">
+              Custom width
+            </Label>
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <Input
+                  id="custom-width"
+                  type="number"
+                  min={1}
+                  value={customWidth}
+                  onChange={(e) => setCustomWidth(e.target.value)}
+                  placeholder={naturalWidth ? String(naturalWidth) : "1920"}
+                  className="h-8 pr-8"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") downloadCustom();
+                  }}
+                />
+                <span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-xs text-muted-foreground">
+                  px
+                </span>
+              </div>
+              <Button
+                size="sm"
+                onClick={downloadCustom}
+                disabled={!customValid}
+              >
+                Download
+              </Button>
+            </div>
+            {customValid && naturalWidth > 0 && (
+              <p className="text-xs text-muted-foreground tabular-nums">
+                {Math.round(customWidthNum)}×{customHeightPreview} (aspect locked)
+              </p>
+            )}
           </div>
         </div>
       )}

@@ -12,7 +12,7 @@ import {
   Square,
   Trash2,
   Type,
-  Undo2, Crop, Highlighter, EyeOff
+  Undo2, Crop, Highlighter, EyeOff, X
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -26,7 +26,6 @@ const SHAPE_TOOLS = [
   { id: "text" as const, label: "Text", Icon: Type },
   { id: "highlight" as const, label: "Highlight", Icon: Highlighter },
   { id: "blur" as const, label: "Blur", Icon: EyeOff },
-
   { id: "rect" as const, label: "Rectangle", Icon: Square },
   { id: "circle" as const, label: "Circle", Icon: CircleIcon },
   { id: "arrow" as const, label: "Arrow", Icon: ArrowUpRight },
@@ -63,7 +62,13 @@ type Props = {
   onBgImageChange: (url: string | null) => void;
   setCornerRadius: (radius: number) => void;
   cornerRadius: number;
+  cropMode?: boolean;
+  naturalWidth: number;
+  naturalHeight: number;
+  highlightSize: number;
+  onHighlightSizeChange: (size: number) => void;
 };
+
 import { DiscardChangesDialog } from "./discard-changes";
 
 export function EditorToolbar({
@@ -87,10 +92,25 @@ export function EditorToolbar({
   onBgImageChange,
   setCornerRadius,
   cornerRadius,
+  cropMode = false,
+  naturalWidth,
+  naturalHeight,
+  highlightSize,
+  onHighlightSizeChange,
 }: Props) {
   const [showColors, setShowColors] = useState(false);
   const colorBtnRef = useRef<HTMLDivElement>(null);
   const [colorPopupStyle, setColorPopupStyle] = useState<React.CSSProperties>({});
+  const [showHighlightSize, setShowHighlightSize] = useState(false);
+
+  const handleToolChange = (newTool: Tool) => {
+    if (newTool === "highlight") {
+      setShowHighlightSize(true);
+    } else {
+      setShowHighlightSize(false);
+    }
+    onTool(newTool);
+  };
 
   const toggleColors = () => {
     setShowColors((prev) => {
@@ -109,26 +129,64 @@ export function EditorToolbar({
   };
 
   return (
-    <div className="flex items-center gap-3 border-b border-border bg-card px-3 py-2 md:flex-wrap md:gap-4 md:px-4 md:py-3">
+    <div className="relative flex items-center gap-3 border-b border-border bg-card px-3 py-2 md:flex-wrap md:gap-4 md:px-4 md:py-3">
       <div className="hidden min-w-0 items-center gap-1 text-sm font-medium md:flex">
-        <span
-          className="max-w-[220px] truncate"
-          title={filename}
-        >
+        <span className="max-w-[220px] truncate" title={filename}>
           {filename || "Untitled"}
         </span>
-        {/* <ChevronDown className="size-4 shrink-0 text-muted-foreground" /> */}
       </div>
-      <div className="-mx-3 flex-1 overflow-x-auto scrollbar-hide  px-3 md:mx-auto md:flex-none md:overflow-visible md:px-0">
-        <div className="inline-flex items-center  gap-1 rounded-2xl border border-border bg-background p-1 shadow-lg md:w-auto ">
+      <div className="-mx-3 flex-1 overflow-x-auto scrollbar-hide px-3 md:mx-auto md:flex-none md:overflow-visible md:px-0">
+        <div className="inline-flex items-center gap-1 rounded-2xl border border-border bg-background p-1 shadow-lg md:w-auto">
           {SHAPE_TOOLS.map(({ id, label, Icon }) => {
             const active = tool === id;
+
+            if (id === "highlight") {
+              return (
+                <div key={id} className="relative">
+                  <ToolButton
+                    label={label}
+                    active={active}
+                    onClick={() => handleToolChange(id)}
+                  >
+                    <Icon className={cn("size-5", active && "stroke-[2.5]")} />
+                  </ToolButton>
+
+                  {showHighlightSize && (
+                    <div className="absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 inline-flex items-center gap-2 whitespace-nowrap rounded-xl border border-border bg-card px-3 py-2 shadow-lg">
+                      <span className="text-xs text-muted-foreground">Size</span>
+                      <input
+                        type="range"
+                        min={4}
+                        max={80}
+                        value={highlightSize}
+                        onChange={(e) =>
+                          onHighlightSizeChange(Number(e.target.value))
+                        }
+                        className="w-28 sm:w-40"
+                      />
+                      <span className="w-6 text-right text-xs tabular-nums">
+                        {highlightSize}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowHighlightSize(false)}
+                        className="ml-1 rounded-md p-0.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                        title="Close"
+                      >
+                        <X className="size-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            }
+
             return (
               <ToolButton
                 key={id}
                 label={label}
                 active={active}
-                onClick={() => onTool(id)}
+                onClick={() => handleToolChange(id)}
               >
                 <Icon className={cn("size-5", active && "stroke-[2.5]")} />
               </ToolButton>
@@ -200,10 +258,9 @@ export function EditorToolbar({
           </ToolButton>
 
           <Divider />
-          <ToolButton label="Crop" onClick={onCrop}>
-            <Crop className="size-5" />
+          <ToolButton label="Crop" active={cropMode} onClick={onCrop}>
+            <Crop className={cn("size-5", cropMode && "stroke-[2.5]")} />
           </ToolButton>
-
 
           <ToolButton label="Rotate" onClick={onRotate}>
             <RotateCw className="size-5" />
@@ -229,7 +286,12 @@ export function EditorToolbar({
       <div className="hidden items-center gap-3 md:hidden lg:flex">
         <DiscardChangesDialog onConfirm={onCancel} />
 
-        <SaveMenu onSave={onSave} filename={filename} />
+        <SaveMenu
+          onSave={onSave}
+          filename={filename}
+          naturalWidth={naturalWidth}
+          naturalHeight={naturalHeight}
+        />
       </div>
     </div>
   );
@@ -256,20 +318,12 @@ function ToolButton({
       title={label}
       className={cn(
         "flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted",
-        active && cn("text-primary",)
+        active && "text-primary"
       )}
       {...aria}
-
     >
       {children}
       <span className={cn(active && "font-semibold")}>{label}</span>
-      {/* <span
-        className={cn(
-          "h-0.5 w-6 rounded-full",
-          active ? "bg-danger" : "bg-transparent",
-        )}
-        aria-hidden
-      /> */}
     </button>
   );
 }

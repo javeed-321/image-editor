@@ -34,6 +34,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { Spinner } from "../ui/spinner";
+import { LandingContent } from "./landing";
 
 const PREVIEW_SHAPE_TOOLS = [
   { id: "pen", label: "Pen", Icon: Pen },
@@ -117,18 +118,26 @@ export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="flex items-center gap-2 border-b border-border bg-card px-3 py-2 md:flex-wrap md:gap-2 md:px-4 md:py-3">
-        <div className="hidden min-w-0  gap-1 text-md text-[#374151] font-medium  md:flex flex-col items-center">
-          <span className="max-w-[220px] truncate">
-            Screenshot <br /> {new Date().toLocaleDateString("en-US", {
-              month: "long",
-              day: "numeric",
-              year: "numeric",
-            })}
-          </span>
-        </div>
-        <div className="-mr-3 ml-45 flex-1 overflow-x-auto scrollbar-hide px-3 md:flex-none md:overflow-visible md:px-0">
-          <div className="inline-flex items-center gap-1 rounded-2xl border border-border bg-background p-1 shadow-lg md:w-auto">
+      <div className="flex items-center gap-3 border-b border-border bg-card px-3 py-2 md:gap-4 md:px-4 md:py-3">
+        <a
+          href="https://documentation.ai/"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="by Documentation.AI"
+          className="hidden shrink-0 items-center gap-2 transition-opacity hover:opacity-80 md:flex"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="https://blob-cdn.documentation.ai/org-53a37986-2c9e-4094-b9e8-1e1ffae9e9ee/doc-b389b141-ae58-4fd5-91f9-6702fae9ac58/1767703565522-24h54tbc4tf-logo_light_mode.svg?auto=format%2Ccompress&w=1920"
+            alt="Documentation.AI"
+            className="h-8 w-auto shrink-0"
+            loading="lazy"
+            decoding="async"
+          />
+
+        </a>
+        <div className="min-w-0 flex-1 overflow-x-auto scrollbar-hide md:flex md:justify-center">
+          <div className="inline-flex items-center gap-1 rounded-2xl border border-border bg-background p-1 shadow-lg">
             {PREVIEW_SHAPE_TOOLS.map(({ id, label, Icon }) => (
               <PreviewToolButton key={id} label={label} onClick={handlePreviewToolClick}>
                 <Icon className="size-5" />
@@ -156,19 +165,24 @@ export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
           </div>
         </div>
         <div className="ml-auto hidden items-center gap-2 lg:flex">
-          <Button variant="outline" size="lg" disabled>
-            <X className="size-4" />
-            Cancel
-          </Button>
-          <Button variant="outline" size="lg" disabled>
-            <Download className="size-4" />
-            Save
-          </Button>
+          <span title="Cancel upload">
+            <Button variant="outline" size="lg" disabled aria-label="Cancel upload">
+              <X className="size-4" />
+              Cancel
+            </Button>
+          </span>
+
+          <span title="Save image">
+            <Button variant="outline" size="lg" disabled aria-label="Save">
+              <Download className="size-4" />
+              Save
+            </Button>
+          </span>
         </div>
       </div>
       <Toaster />
 
-      <div className="flex flex-1 flex-col items-center justify-center px-3 py-6 sm:px-4 sm:py-10">
+      <div className="flex flex-1 flex-col items-center overflow-y-auto px-3 py-6 sm:px-4 sm:py-10">
         <div
           className={cn(
             "w-full max-w-3xl rounded-2xl border-2 border-dashed bg-card transition-colors sm:rounded-3xl",
@@ -201,14 +215,14 @@ export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
             <div className="relative inline-flex">
               <Button
                 size="lg"
-                className="rounded-r-none px-6"
                 onClick={() => fileInputRef.current?.click()}
+                className="rounded-r-none px-6 transition-all duration-200 hover:bg-primary/80 "
               >
                 Choose a file
               </Button>
               <Button
                 size="lg"
-                className="rounded-l-none border-l border-primary-foreground/30 px-2"
+                className="rounded-l-none border-l border-primary-foreground/30 px-2 transition-all duration-200 hover:bg-primary/80 hover:shadow-md"
                 onClick={() => setShowMenu((v) => !v)}
                 aria-haspopup="menu"
                 aria-expanded={showMenu}
@@ -272,6 +286,12 @@ export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
         {urlError && (
           <p className="text-sm text-destructive mt-3">{urlError}</p>
         )}
+
+        {/* Marketing landing — shown ONLY on the upload screen (this whole
+            component unmounts once an image is loaded). */}
+        <div className="mt-12 w-full">
+          <LandingContent onChooseFile={() => fileInputRef.current?.click()} />
+        </div>
 
         {/* URL Dialog */}
         <Dialog open={showUrlDialog} onOpenChange={setShowUrlDialog}>

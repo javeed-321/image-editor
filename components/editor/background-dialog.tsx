@@ -62,7 +62,7 @@ export function BackgroundPopover({
   return (
     <Popover>
       <PopoverTrigger
-        className="flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted"
+        className="flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted aria-expanded:text-primary aria-expanded:font-semibold [&[aria-expanded='true']_svg]:stroke-[2.5]"
         title="Background"
       >
         <Frame className="size-5" />

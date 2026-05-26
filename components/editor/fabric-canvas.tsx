@@ -52,9 +52,9 @@ export default function FabricCanvas() {
 
   const [tool, setTool] = useState<Tool>("pen");
   const [color, setColor] = useState<string>("#ef4444");
-  const [zoom, setZoom] = useState<number>(1);
   const [hasImage, setHasImage] = useState<boolean>(false);
-const [padding, setPadding] = useState<number>(0);
+const [padding, setPadding] = useState<number>(15);
+const [highlightSize, setHighlightSize] = useState<number>(15);
 
 // 
 const handlePaddingChange = (next: number) => {
@@ -68,7 +68,8 @@ const handlePaddingChange = (next: number) => {
     typeof window !== "undefined" && !!localStorage.getItem(STORAGE.USER_IMAGE)
   );
 
-  const [cornerRadius, setCornerRadius] = useState<number>(0);
+  const [cornerRadius, setCornerRadius] = useState<number>(15);
+  const [naturalSize, setNaturalSize] = useState<{ w: number; h: number }>({ w: 0, h: 0 });
 
 
 
@@ -188,7 +189,7 @@ img.dirty = true;
       const brush = new fabric.PencilBrush(c);
       brush.color = "rgba(253, 224, 71, 0.4)";   // #fde047 @ 40% opacity
 
-      brush.width = 30;
+      brush.width = highlightSize;
       // ← thicker
       c.freeDrawingBrush = brush;
     }
@@ -204,16 +205,22 @@ img.dirty = true;
     else {
       c.isDrawingMode = false;
     }
-  }, [tool, color]);
+  }, [tool, color,highlightSize
+  ]);
 
   useEffect(() => {
     if (!hasImage) return;
-    const c = fabricRef.current;
-    const userImg = userImageRef.current;
     const wrap = canvasWrapRef.current;
-    if (!c || !userImg || !wrap) return;
+    if (!wrap) return;
 
     const fit = () => {
+      // Read refs at call time, not capture — fitRef.current outlives canvas
+      // dispose/recreate cycles (StrictMode, HMR, image swap), so a stale
+      // closure pointing at a disposed canvas crashes inside fabric internals.
+      const c = fabricRef.current;
+      const userImg = userImageRef.current;
+      if (!c || !userImg || !(c as unknown as { lowerCanvasEl?: unknown }).lowerCanvasEl) return;
+
       // Read the AABB after rotation — width/height auto-swap for 90/270°
       const bounds = userImg.getBoundingRect();
       const framedW = bounds.width + 2 * padding;
@@ -233,18 +240,33 @@ img.dirty = true;
         });
       }
 
-      // wrap.clientHeight grows with the canvas content (body is min-h-full),
-      // so on first load and zoom-in it reads oversized and fitZoom caps at 1.
-      // Use viewport-relative height from wrap's top to viewport bottom instead.
-      const wrapTop = Math.max(0, wrap.getBoundingClientRect().top);
-      const availW = wrap.clientWidth - 24;
-      const availH = window.innerHeight - wrapTop - 24;
+      // Measure the wrap's actual inner content box. clientWidth/Height include
+      // padding (but exclude borders/scrollbars), so subtract the computed
+      // padding to get the area the canvas must fit into. This works because:
+      //  · wrap has `min-h-0 flex-1 overflow-hidden`, so it can't grow with
+      //    its canvas child and is bounded by its flex parent's height
+      //  · wrap's own padding (px-2 py-4 pb-20 sm:px-4 sm:py-6 md:pb-6)
+      //    already reserves room for the fixed bottom Discard/Done bar
+      // Scaling against this exact box guarantees the canvas never overflows.
+      const cs = window.getComputedStyle(wrap);
+      const padX =
+        (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+      const padY =
+        (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+      const availW = Math.max(1, wrap.clientWidth - padX);
+      const availH = Math.max(1, wrap.clientHeight - padY);
       const fitZoom = Math.min(availW / framedW, availH / framedH, 1);
-      const z = Math.max(0.1, fitZoom * zoom);
+      const z = Math.max(0.05, fitZoom);
 
       c.setZoom(z);
       c.setDimensions({ width: framedW * z, height: framedH * z });
       c.requestRenderAll();
+
+      setNaturalSize((prev) =>
+        prev.w === Math.round(framedW) && prev.h === Math.round(framedH)
+          ? prev
+          : { w: Math.round(framedW), h: Math.round(framedH) },
+      );
 
       if (historyRef.current.length === 0) {
         historyRef.current = [JSON.stringify(c.toJSON())];
@@ -257,7 +279,7 @@ img.dirty = true;
     const ro = new ResizeObserver(fit);
     ro.observe(wrap);
     return () => ro.disconnect();
-  }, [hasImage, padding, bgColor, zoom]);
+  }, [hasImage, padding, bgColor]);
 
 
   useEffect(() => {
@@ -427,7 +449,6 @@ img.dirty = true;
     setImageSrc(null);
     setFilename("");
     setTool("pen");
-    setZoom(1);
     setHasImage(false);
     setPadding(0);
     setBgColor("#ffffff");
@@ -454,51 +475,28 @@ img.dirty = true;
 
     const b = img.getBoundingRect();
     const rect = new fabric.Rect({
-      left: b.left + 10, top: b.top + 10, width: b.width - 50, height: b.height - 50,
+      left: b.left,
+      top: b.top,
+      width: b.width,
+      height: b.height,
+      originX: "left",
+      originY: "top",
+      centeredScaling: false,
+      centeredRotation: false,
+      lockScalingFlip: true,
       fill: "rgba(59,130,246,0.08)",
-      stroke: "#3b82f6", strokeDashArray: [6, 4], strokeWidth: 2, strokeUniform: true,
-      cornerColor: "#3b82f6", cornerStyle: "circle", transparentCorners: false,
-      lockRotation: true, hasRotatingPoint: false,
-      minScaleLimit: 0.05,
+      stroke: "#3b82f6",
+      strokeDashArray: [6, 4],
+      strokeWidth: 2,
+      strokeUniform: true,
+      cornerColor: "#3b82f6",
+      cornerStyle: "circle",
+      transparentCorners: false,
+      lockRotation: true,
+      hasRotatingPoint: false,
     });
 
-    // ── Clamp to image bounds on every move/scale ────────────────
-    const clamp = () => {
-      const ib = img.getBoundingRect();
-      const minL = ib.left;
-      const minT = ib.top;
-      const maxR = ib.left + ib.width;
-      const maxB = ib.top + ib.height;
-
-      // Compute the rect's four edges as the user just left them
-      let l = rect.left ?? 0;
-      let t = rect.top ?? 0;
-      let r = l + rect.getScaledWidth();
-      let b = t + rect.getScaledHeight();
-
-      // Clamp each edge to the image
-      if (l < minL) l = minL;
-      if (t < minT) t = minT;
-      if (r > maxR) r = maxR;
-      if (b > maxB) b = maxB;
-
-      // Reapply as position + scale (single source of truth)
-      rect.set({
-        left: l,
-        top: t,
-        scaleX: (r - l) / (rect.width ?? 1),
-        scaleY: (b - t) / (rect.height ?? 1),
-      });
-      rect.setCoords();
-    };
-
-
-    rect.on("moving", clamp);
-    rect.on("scaling", clamp);
-    // ─────────────────────────────────────────────────────────────
-
     c.add(rect);
-
     c.setActiveObject(rect);
     cropRectRef.current = rect;
     setCropMode(true);
@@ -523,21 +521,11 @@ img.dirty = true;
     const imgBounds = img.getBoundingRect();
     const scale = img.scaleX ?? 1;
 
-    // Clamp the crop rect to the image's visible area first
-    const rL = Math.max(rect.left ?? 0, imgBounds.left);
-    const rT = Math.max(rect.top ?? 0, imgBounds.top);
-    const rR = Math.min((rect.left ?? 0) + rect.getScaledWidth(), imgBounds.left + imgBounds.width);
-    const rB = Math.min((rect.top ?? 0) + rect.getScaledHeight(), imgBounds.top + imgBounds.height);
-    const rW = rR - rL;
-    const rH = rB - rT;
-    if (rW <= 1 || rH <= 1) { cancelCrop(); return; }
-
-    // Convert canvas-space → source-image-pixel space.
-    // Add existing cropX/Y so successive crops compound correctly.
-    const cropX = (rL - imgBounds.left) / scale + (img.cropX ?? 0);
-    const cropY = (rT - imgBounds.top) / scale + (img.cropY ?? 0);
-    const cropW = rW / scale;
-    const cropH = rH / scale;
+    // Convert rect (canvas pixels) → source-image pixels.
+    const cropX = ((rect.left ?? 0) - imgBounds.left) / scale + (img.cropX ?? 0);
+    const cropY = ((rect.top ?? 0) - imgBounds.top) / scale + (img.cropY ?? 0);
+    const cropW = rect.getScaledWidth() / scale;
+    const cropH = rect.getScaledHeight() / scale;
 
     img.set({ cropX, cropY, width: cropW, height: cropH });
     img.setCoords();
@@ -547,7 +535,7 @@ img.dirty = true;
     setCropMode(false);
 
     pushHistory();
-    fitRef.current();  // re-fit canvas to new image size
+    fitRef.current();
   };
 
 
@@ -599,9 +587,14 @@ img.dirty = true;
         onBgImageChange={handleBgImgChange}
         setCornerRadius={setCornerRadius}
         cornerRadius={cornerRadius}
+        naturalWidth={naturalSize.w}
+        naturalHeight={naturalSize.h}
+        cropMode={cropMode}
+        highlightSize={highlightSize}
+        onHighlightSizeChange={setHighlightSize}
       />
       {/* <ReloadConfirmGuard onConfirm={cancel} /> */}
-      <div ref={canvasWrapRef} className="relative flex flex-1 items-center justify-center overflow-auto bg-muted/30 px-2 py-4 pb-20 sm:px-4 sm:py-6 md:pb-6">
+      <div ref={canvasWrapRef} className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-muted/30 px-2 py-4 pb-20 sm:px-4 sm:py-6 md:pb-6">
         <div className="overflow-hidden rounded-lg border border-border bg-white shadow-sm">
           <canvas ref={canvasElRef} />
         </div>
@@ -617,27 +610,6 @@ img.dirty = true;
           </div>
         )}
 
-        <div className="fixed bottom-15 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-card p-1 shadow-md md:bottom-6">
-          <button
-            type="button"
-            onClick={() => setZoom((z) => Math.max(0.25, z - 0.05))}
-            className="flex size-7  justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-            aria-label="Zoom out"
-          >
-            −
-          </button>
-          <span className="min-w-[3ch] text-center text-sm font-medium tabular-nums">
-            {Math.round(zoom * 100)}%
-          </span>
-          <button
-            type="button"
-            onClick={() => setZoom((z) => Math.min(2, z + 0.05))}
-            className="flex size-7 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground"
-            aria-label="Zoom in"
-          >
-            +
-          </button>
-        </div>
         {cropMode && (
           <div className="fixed bottom-20 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card p-1 shadow-md md:bottom-6">
             <button
@@ -662,7 +634,13 @@ img.dirty = true;
       <div className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3   px-4 py-3  lg:hidden  bg-[transparent]">
         <DiscardChangesDialog onConfirm={cancel} />
 
-        <SaveMenu onSave={save} filename={filename} menuPlacement="top" />
+        <SaveMenu
+          onSave={save}
+          filename={filename}
+          naturalWidth={naturalSize.w}
+          naturalHeight={naturalSize.h}
+          menuPlacement="top"
+        />
       </div>
 
     </div>

@@ -6,6 +6,7 @@ import {
   ChevronDown,
   Circle as CircleIcon,
   Crop,
+  Download,
   EyeOff,
   Frame,
   Highlighter,
@@ -18,6 +19,7 @@ import {
   Type,
   Undo2,
   Upload,
+  X,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -115,7 +117,7 @@ export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
 
   return (
     <div className="flex flex-1 flex-col">
-      <div className="flex items-center gap-2 border-b border-border bg-card px-3 py-2 md:flex-wrap md:gap-4 md:px-4 md:py-3">
+      <div className="flex items-center gap-2 border-b border-border bg-card px-3 py-2 md:flex-wrap md:gap-2 md:px-4 md:py-3">
         <div className="hidden min-w-0  gap-1 text-md text-[#374151] font-medium  md:flex flex-col items-center">
           <span className="max-w-[220px] truncate">
             Screenshot <br /> {new Date().toLocaleDateString("en-US", {
@@ -125,7 +127,7 @@ export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
             })}
           </span>
         </div>
-        <div className="-mx-3 flex-1 overflow-x-auto scrollbar-hide px-3 md:mx-auto md:flex-none md:overflow-visible md:px-0">
+        <div className="-mr-3 ml-45 flex-1 overflow-x-auto scrollbar-hide px-3 md:flex-none md:overflow-visible md:px-0">
           <div className="inline-flex items-center gap-1 rounded-2xl border border-border bg-background p-1 shadow-lg md:w-auto">
             {PREVIEW_SHAPE_TOOLS.map(({ id, label, Icon }) => (
               <PreviewToolButton key={id} label={label} onClick={handlePreviewToolClick}>
@@ -152,6 +154,16 @@ export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
               </PreviewToolButton>
             ))}
           </div>
+        </div>
+        <div className="ml-auto hidden items-center gap-2 lg:flex">
+          <Button variant="outline" size="lg" disabled>
+            <X className="size-4" />
+            Cancel
+          </Button>
+          <Button variant="outline" size="lg" disabled>
+            <Download className="size-4" />
+            Save
+          </Button>
         </div>
       </div>
       <Toaster />

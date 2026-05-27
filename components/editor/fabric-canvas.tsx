@@ -322,7 +322,7 @@ useEffect(() => {
     setTool("pen");
     setHasImage(false);
     setBgColor("#ffffff");
-    setBgActiveIndex(null);
+    // setBgActiveIndex(null);
     // (keep bgGallery — it's the user's saved library across sessions)
     resetHistory();
     userImageRef.current = null;

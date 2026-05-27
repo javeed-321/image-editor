@@ -117,7 +117,7 @@ export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
   };
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex flex-1  min-h-0 flex-col">
       <div className="flex items-center gap-3 border-b border-border bg-card px-3 py-2 md:gap-4 md:px-4 md:py-3">
         <a
           href="https://documentation.ai/"
@@ -173,7 +173,7 @@ export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
           </span>
 
           <span title="Save image">
-            <Button variant="outline" size="lg" disabled aria-label="Save">
+            <Button variant="outline" size="lg" disabled aria-label="Save" className="cursor-not-allowed">
               <Download className="size-4" />
               Save
             </Button>

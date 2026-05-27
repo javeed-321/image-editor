@@ -50,13 +50,13 @@ export function BackgroundPopover({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (files: FileList | null) => {
-  const file = files?.[0];
-  if (!file || !file.type.startsWith("image/")) return;
-  if (bgGallery.length >= STORAGE.BG_GALLERY_MAX) return;
-  const reader = new FileReader();
-  reader.onload = () => onAddBg(reader.result as string);
-  reader.readAsDataURL(file);
-};
+    const file = files?.[0];
+    if (!file || !file.type.startsWith("image/")) return;
+    if (bgGallery.length >= STORAGE.BG_GALLERY_MAX) return;
+    const reader = new FileReader();
+    reader.onload = () => onAddBg(reader.result as string);
+    reader.readAsDataURL(file);
+  };
 
 
   return (
@@ -82,14 +82,14 @@ export function BackgroundPopover({
               value={[padding]}
               min={0}
               max={200}
-              step={10}
+              step={5}
               onValueChange={(v) => {
                 const next = Array.isArray(v) ? v[0] : v;
                 onPaddingChange(typeof next === "number" ? next : 0);
               }}
             />
           </div>
- <div className="space-y-2">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium">Corner Radius</label>
               <span className="text-sm text-muted-foreground">
@@ -100,7 +100,7 @@ export function BackgroundPopover({
               value={[cornerRadius]}
               min={0}
               max={200}
-              step={5}
+              step={2}
               onValueChange={(v) => {
                 const next = Array.isArray(v) ? v[0] : v;
                 setCornerRadius(typeof next === "number" ? next : 0);
@@ -144,67 +144,68 @@ export function BackgroundPopover({
           </div>
 
           <div className="space-y-2">
-  <label className="text-sm font-medium mr-2 mb-3">Background image</label>
-  <div className="flex items-center gap-2 mt-2">
-    {Array.from({ length: STORAGE.BG_GALLERY_MAX }, (_, i) => {
-      const url = bgGallery[i];
-      const isActive = bgActiveIndex === i;
+            <label className="text-sm font-medium mr-2 mb-3">Background image</label>
+            <div className="flex items-center gap-2 mt-2">
+              {Array.from({ length: STORAGE.BG_GALLERY_MAX }, (_, i) => {
+                const url = bgGallery[i];
+                const isActive = bgActiveIndex === i;
 
-      if (!url) {
-        return (
-          <button
-            key={i}
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            className="flex size-16 items-center justify-center rounded-md border-2 border-dashed border-border text-muted-foreground hover:bg-muted"
-            title="Upload background"
-          >
-            <Upload className="size-4" />
-          </button>
-        );
-      }
+                if (!url) {
+                  return (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="flex size-20 flex-col items-center justify-center gap-1.5 rounded-lg border-2 border-dashed border-muted-foreground/30 text-muted-foreground/50 transition-all hover:border-primary hover:bg-primary/5 hover:text-primary hover:shadow-sm"
+                      title="Upload background"
+                    >
+                      <Upload className="size-5" />
+                      <span className="text-[10px] font-medium leading-none">Add</span>
+                    </button>
+                  );
+                }
 
-      return (
-        <div key={i} className="relative">
-          <button
-            type="button"
-            onClick={() => onSelectBg(isActive ? null : i)}
-            className={cn(
-              "size-16 overflow-hidden rounded-md border-2 bg-cover bg-center",
-              isActive
-                ? "border-primary ring-2 ring-primary"
-                : "border-border hover:border-muted-foreground",
-            )}
-            style={{ backgroundImage: `url(${url})` }}
-            title={isActive ? "Click to unset" : "Use as background"}
-          />
-          <button
-            type="button"
-            onClick={() => onRemoveBg(i)}
-            className="absolute -right-1.5 -top-1.5 rounded-full bg-destructive p-0.5 text-destructive-foreground hover:scale-110"
-            title="Remove"
-          >
-            <X className="size-3" />
-          </button>
-        </div>
-      );
-    })}
-  </div>
-  <input
-    ref={fileInputRef}
-    type="file"
-    accept="image/*"
-    className="hidden"
-    onChange={(e) => {
-      handleFile(e.target.files);
-      e.target.value = ""; // allow re-uploading same file
-    }}
-  />
-  <p className="flex items-center gap-1 text-xs text-muted-foreground">
-    <ImageIcon className="size-3" />
-    Image is stretched to fill the framed area.
-  </p>
-</div>
+                return (
+                  <div key={i} className="group relative">
+                    <button
+                      type="button"
+                      onClick={() => onSelectBg(isActive ? null : i)}
+                      className={cn(
+                        "size-20 overflow-hidden rounded-lg border-2 bg-cover bg-center transition-all",
+                        isActive
+                          ? "border-primary ring-2 ring-primary shadow-md"
+                          : "border-border hover:border-muted-foreground hover:shadow-sm",
+                      )}
+                      style={{ backgroundImage: `url(${url})` }}
+                      title={isActive ? "Click to unset" : "Use as background"}
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => onRemoveBg(i)}
+                      className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-background/80 text-muted-foreground shadow-md ring-1 ring-border backdrop-blur-sm opacity-0 transition-all group-hover:opacity-100 hover:bg-foreground text-background hover:ring-0"
+                      title="Remove"
+                    >
+                      <X className="size-2.5 stroke-[3]" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                handleFile(e.target.files);
+                e.target.value = ""; // allow re-uploading same file
+              }}
+            />
+            <p className="flex items-center gap-1 text-xs text-muted-foreground">
+  Click the selected image again to remove background.
+            </p>
+          </div>
 
         </div>
       </PopoverContent>

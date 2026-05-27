@@ -69,7 +69,7 @@ const breadcrumbSchema = {
 
 export default function Home() {
   return (
-    <section className="flex flex-1 flex-col">
+    <section className="flex min-h-0 flex-1 flex-col">
       <JsonLd data={webApplicationSchema} />
       <JsonLd data={breadcrumbSchema} />
        

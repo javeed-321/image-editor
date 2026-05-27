@@ -82,7 +82,8 @@ export function DiscardChangesDialog({ onConfirm }: { onConfirm: () => void }) {
         onClick={() => setOpen(true)}
         className="text-sm font-medium text-muted-foreground hover:text-foreground"
       >
-        Cancel
+          New Image
+
       </button>
       <ConfirmDiscardDialog
         open={open}

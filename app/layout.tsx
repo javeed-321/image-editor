@@ -117,12 +117,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${jetbrainsMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${jetbrainsMono.variable} h-dvh overflow-hidden antialiased`}
     >
-      <body className="flex min-h-full flex-col bg-background">
+      <body className="flex h-dvh flex-col overflow-hidden bg-background">
         <JsonLd data={organizationSchema} />
         <JsonLd data={websiteSchema} />
-        <main className="flex flex-1 flex-col">{children}</main>
+        <main className="flex min-h-0 flex-1 flex-col">{children}</main>
         <PromoBadge />
           <Toaster position="top-center" richColors />   {/* ← new */}
 

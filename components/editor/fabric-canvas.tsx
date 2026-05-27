@@ -81,7 +81,7 @@ export default function FabricCanvas() {
     bgActiveIndex !== null ? bgGallery[bgActiveIndex] ?? null : null;
 
 
-  const [tool, setTool] = useState<Tool>("pen");
+  const [tool, setTool] = useState<Tool>("select");
   const [color, setColor] = useState<string>("#ef4444");
   const [hasImage, setHasImage] = useState<boolean>(false);
   const [highlightSize, setHighlightSize] = useState<number>(15);
@@ -109,29 +109,38 @@ export default function FabricCanvas() {
   };
 
   const handleAddBg = (dataUrl: string) => {
-    if (bgGallery.length >= STORAGE.BG_GALLERY_MAX) {
+    // Check individual image size
+    const imageSizeBytes = new Blob([dataUrl]).size;
+    const maxSingleBgBytes = 5 * 1024 * 1024; // 5 MB per image (adjust as needed)
 
-      toast.warning(`You can only save up to ${STORAGE.BG_GALLERY_MAX} background images. Please remove one to add a new one.`);
-      return;
+    if (imageSizeBytes >= maxSingleBgBytes) {
+      const sizeMb = (imageSizeBytes / (1024 * 1024)).toFixed(1);
+      toast.error(
+        `Background image is ${sizeMb} MB (max 5 MB). Large images won't be saved and will be lost on refresh.`,
+         { duration: 6000 });
     }
+
+    // if (bgGallery.length >= STORAGE.BG_GALLERY_MAX) {
+    //   toast.warning(`You can only save up to ${STORAGE.BG_GALLERY_MAX} background images. Please remove one to add a new one.`);
+    //   return;
+    // }
     const next = [...bgGallery, dataUrl];
     setBgGallery(next);
     safeSet(STORAGE.BG_GALLERY, JSON.stringify(next));
-    handleSelectBg(next.length - 1); // auto-select newly added
+    // handleSelectBg(next.length - 1); // auto-select newly added
   };
 
   const handleRemoveBg = (index: number) => {
     const next = bgGallery.filter((_, i) => i !== index);
     setBgGallery(next);
-    const err=safeSet(STORAGE.BG_GALLERY, JSON.stringify(next));
-    if(err)
-    {
-       toast.error("Couldn't save image", {
-          description: err.message,
-          duration: 6000,
-        });
-    }
-    
+    const err = safeSet(STORAGE.BG_GALLERY, JSON.stringify(next));
+    // if (err) {
+    //   toast.error("Couldn't save image", {
+    //     description: err.message,
+    //     duration: 6000,
+    //   });
+    // }
+
     if (bgActiveIndex === index) handleSelectBg(null);
     else if (bgActiveIndex !== null && bgActiveIndex > index)
       handleSelectBg(bgActiveIndex - 1);
@@ -256,22 +265,31 @@ export default function FabricCanvas() {
     };
   }, [hasImage, fontSize]);
 
+
+
+   
+
+
   const uploadFromFile = (file: File) => {
     setLoading(true);
 
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result as string;
+      const imageSizeBytes = new Blob([dataUrl]).size;
+      const maxSingleBgBytes = 5 * 1024 * 1024; // 5 MB per image (adjust as needed)
+
       setImageSrc(dataUrl);
       setFilename(file.name);
 
-      const err = safeSet(STORAGE.USER_IMAGE, dataUrl);
-      if (err) {
-        toast.error("Couldn't save image", {
-          description: err.message,
-          duration: 6000,
-        });
-      }
+ if (imageSizeBytes >= maxSingleBgBytes) {
+      const sizeMb = (imageSizeBytes / (1024 * 1024)).toFixed(1);
+      toast.error(
+        `Background image is ${sizeMb} MB (max 5 MB). Large images won't be saved and will be lost on refresh.`,
+         { duration: 6000 });
+    }
+
+      safeSet(STORAGE.USER_IMAGE, dataUrl);
       safeSet(STORAGE.FILENAME, file.name);
       setLoading(false);
     };
@@ -350,7 +368,7 @@ export default function FabricCanvas() {
   };
 
   return (
-    <div className="flex flex-1 flex-col">
+    <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <EditorToolbar
         filename={filename}
         tool={tool}

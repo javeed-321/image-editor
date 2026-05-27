@@ -1,16 +1,11 @@
 "use client";
 
 import { useRef } from "react";
-import { Frame, ImageIcon, Trash2, Upload } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Frame, ImageIcon, Upload, X } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
-import { cn } from "@/lib/utils";
+import { cn, STORAGE } from "@/lib/utils";
 
 const BG_COLORS = [
   "#ffffff",
@@ -28,36 +23,41 @@ const BG_COLORS = [
 type Props = {
   padding: number;
   bgColor: string;
-  bgImageUrl: string | null;
+  bgGallery: string[];
+  bgActiveIndex: number | null;
+  onAddBg: (dataUrl: string) => void;
+  onRemoveBg: (index: number) => void;
+  onSelectBg: (index: number | null) => void;
   onPaddingChange: (padding: number) => void;
   onBgColorChange: (color: string) => void;
-  onBgImageChange: (url: string | null) => void;
-    setCornerRadius: (radius: number) => void;
+  setCornerRadius: (radius: number) => void;
   cornerRadius: number;
-
-  
 };
 
 export function BackgroundPopover({
   padding,
   bgColor,
-  bgImageUrl,
+  bgGallery,
+  bgActiveIndex,
+  onAddBg,
+  onRemoveBg,
+  onSelectBg,
   onPaddingChange,
   onBgColorChange,
-  onBgImageChange,
   setCornerRadius,
   cornerRadius,
-  
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFile = (files: FileList | null) => {
-    const file = files?.[0];
-    if (!file || !file.type.startsWith("image/")) return;
-    const reader = new FileReader();
-    reader.onload = () => onBgImageChange(reader.result as string);
-    reader.readAsDataURL(file);
-  };
+  const file = files?.[0];
+  if (!file || !file.type.startsWith("image/")) return;
+  if (bgGallery.length >= STORAGE.BG_GALLERY_MAX) return;
+  const reader = new FileReader();
+  reader.onload = () => onAddBg(reader.result as string);
+  reader.readAsDataURL(file);
+};
+
 
   return (
     <Popover>
@@ -144,46 +144,68 @@ export function BackgroundPopover({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium mr-2">Background image</label>
-            {bgImageUrl ? (
-              <div className="flex items-center gap-3 rounded-lg border border-border p-2">
-                <div
-                  className="size-12 shrink-0 rounded-md border border-border bg-cover bg-center"
-                  style={{ backgroundImage: `url(${bgImageUrl})` }}
-                />
-                <div className="flex-1 text-xs text-muted-foreground">
-                  Image set as background
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={() => onBgImageChange(null)}
-                  aria-label="Remove background image"
-                >
-                  <Trash2 className="size-4" />
-                </Button>
-              </div>
-            ) : (
-              <Button
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <Upload className="size-4" />
-                Upload image
-              </Button>
+  <label className="text-sm font-medium mr-2">Background image</label>
+  <div className="flex items-center gap-2">
+    {Array.from({ length: STORAGE.BG_GALLERY_MAX }, (_, i) => {
+      const url = bgGallery[i];
+      const isActive = bgActiveIndex === i;
+
+      if (!url) {
+        return (
+          <button
+            key={i}
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex size-16 items-center justify-center rounded-md border-2 border-dashed border-border text-muted-foreground hover:bg-muted"
+            title="Upload background"
+          >
+            <Upload className="size-4" />
+          </button>
+        );
+      }
+
+      return (
+        <div key={i} className="relative">
+          <button
+            type="button"
+            onClick={() => onSelectBg(isActive ? null : i)}
+            className={cn(
+              "size-16 overflow-hidden rounded-md border-2 bg-cover bg-center",
+              isActive
+                ? "border-primary ring-2 ring-primary"
+                : "border-border hover:border-muted-foreground",
             )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={(e) => handleFile(e.target.files)}
-            />
-            <p className="flex items-center gap-1 text-xs text-muted-foreground">
-              <ImageIcon className="size-3" />
-              Image is stretched to fill the framed area.
-            </p>
-          </div>
+            style={{ backgroundImage: `url(${url})` }}
+            title={isActive ? "Click to unset" : "Use as background"}
+          />
+          <button
+            type="button"
+            onClick={() => onRemoveBg(i)}
+            className="absolute -right-1.5 -top-1.5 rounded-full bg-destructive p-0.5 text-destructive-foreground hover:scale-110"
+            title="Remove"
+          >
+            <X className="size-3" />
+          </button>
+        </div>
+      );
+    })}
+  </div>
+  <input
+    ref={fileInputRef}
+    type="file"
+    accept="image/*"
+    className="hidden"
+    onChange={(e) => {
+      handleFile(e.target.files);
+      e.target.value = ""; // allow re-uploading same file
+    }}
+  />
+  <p className="flex items-center gap-1 text-xs text-muted-foreground">
+    <ImageIcon className="size-3" />
+    Image is stretched to fill the framed area.
+  </p>
+</div>
+
         </div>
       </PopoverContent>
     </Popover>

@@ -32,7 +32,7 @@ export default function FabricCanvas() {
   const canvasWrapRef = useRef<HTMLDivElement>(null);
   const fabricRef = useRef<fabric.Canvas | null>(null);
   const userImageRef = useRef<fabric.FabricImage | null>(null);
-  const fitRef = useRef<() => void>(() => {});
+  const fitRef = useRef<() => void>(() => { });
 
   const [imageSrc, setImageSrc] = useState<string | null>(() =>
     typeof window !== "undefined"
@@ -44,17 +44,30 @@ export default function FabricCanvas() {
       ? localStorage.getItem(STORAGE.FILENAME) ?? ""
       : "",
   );
-  const [bgImageUrl, setBgImageUrl] = useState<string | null>(() =>
-    typeof window !== "undefined"
-      ? localStorage.getItem(STORAGE.BG_IMAGE)
-      : null,
-  );
+const [bgGallery, setBgGallery] = useState<string[]>(() => {
+  if (typeof window === "undefined") return [];
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE.BG_GALLERY) ?? "[]");
+  } catch {
+    return [];
+  }
+});
+const [bgActiveIndex, setBgActiveIndex] = useState<number | null>(() => {
+  if (typeof window === "undefined") return null;
+  const v = localStorage.getItem(STORAGE.BG_ACTIVE_INDEX);
+  return v === null ? null : Number(v);
+});
+
+const bgImageUrl =
+  bgActiveIndex !== null ? bgGallery[bgActiveIndex] ?? null : null;
+
 
   const [tool, setTool] = useState<Tool>("pen");
   const [color, setColor] = useState<string>("#ef4444");
   const [hasImage, setHasImage] = useState<boolean>(false);
   const [padding, setPadding] = useState<number>(15);
   const [highlightSize, setHighlightSize] = useState<number>(15);
+  const [blurSize, setBlurSize] = useState<number>(15);
   const [bgColor, setBgColor] = useState<string>("#ffffff");
   const [loading, setLoading] = useState(
     () =>
@@ -68,13 +81,43 @@ export default function FabricCanvas() {
   });
   const [fontSize, setFontSize] = useState<number>(22);
 
-    const [fontFamily, setFontFamily] = useState<string>("Arial");
+  const [fontFamily, setFontFamily] = useState<string>("Arial");
 
 
-  
 
-  const { historyRef, historyIdxRef, pushHistory, restore, resetHistory } =
+ const handleSelectBg = (index: number | null) => {
+  setBgActiveIndex(index);
+  if (index === null) localStorage.removeItem(STORAGE.BG_ACTIVE_INDEX);
+  else safeSet(STORAGE.BG_ACTIVE_INDEX, String(index));
+};
+
+const handleAddBg = (dataUrl: string) => {
+  if (bgGallery.length >= STORAGE.BG_GALLERY_MAX) return;
+  const next = [...bgGallery, dataUrl];
+  setBgGallery(next);
+  safeSet(STORAGE.BG_GALLERY, JSON.stringify(next));
+  handleSelectBg(next.length - 1); // auto-select newly added
+};
+
+const handleRemoveBg = (index: number) => {
+  const next = bgGallery.filter((_, i) => i !== index);
+  setBgGallery(next);
+  safeSet(STORAGE.BG_GALLERY, JSON.stringify(next));
+  if (bgActiveIndex === index) handleSelectBg(null);
+  else if (bgActiveIndex !== null && bgActiveIndex > index)
+    handleSelectBg(bgActiveIndex - 1);
+};
+
+
+
+
+
+
+
+
+  const { historyRef, historyIdxRef, pushHistory, restore, resetHistory, canUndo, canRedo } =
     useCanvasHistory(fabricRef);
+
 
   useCanvasInit({
     imageSrc,
@@ -95,7 +138,7 @@ export default function FabricCanvas() {
     fitRef,
   });
 
-  useCanvasTool({ tool, color, highlightSize, fabricRef });
+  useCanvasTool({ tool, color, highlightSize, blurSize, fabricRef });
 
   useCanvasFit({
     hasImage,
@@ -120,15 +163,15 @@ export default function FabricCanvas() {
   });
 
   const handleFontFamilyChange = (family: string) => {
-  setFontFamily(family);
-  const c = fabricRef.current;
-  const active = c?.getActiveObject();
-  if (c && active instanceof fabric.IText) {
-    active.set("fontFamily", family);
-    c.requestRenderAll();
-    pushHistory();
-  }
-};
+    setFontFamily(family);
+    const c = fabricRef.current;
+    const active = c?.getActiveObject();
+    if (c && active instanceof fabric.IText) {
+      active.set("fontFamily", family);
+      c.requestRenderAll();
+      pushHistory();
+    }
+  };
 
 
 
@@ -175,7 +218,7 @@ export default function FabricCanvas() {
       c.off("object:scaling", sync);
       c.off("object:modified", sync);
     };
-  }, [hasImage,fontSize]);
+  }, [hasImage, fontSize]);
 
   const uploadFromFile = (file: File) => {
     setLoading(true);
@@ -226,7 +269,7 @@ export default function FabricCanvas() {
     setTool(id);
     const c = fabricRef.current;
     if (!c) return;
-if (id === "text") addText(c, color, fontSize, fontFamily);
+    if (id === "text") addText(c, color, fontSize, fontFamily);
     else if (id === "rect") addRect(c, color);
     else if (id === "circle") addCircle(c, color);
     else if (id === "arrow") addArrow(c, color);
@@ -247,32 +290,28 @@ if (id === "text") addText(c, color, fontSize, fontFamily);
     pushHistory();
   };
 
-  const cancel = () => {
-    setImageSrc(null);
-    setFilename("");
-    setTool("pen");
-    setHasImage(false);
-    setPadding(0);
-    setBgColor("#ffffff");
-    setBgImageUrl(null);
+ const cancel = () => {
+  setImageSrc(null);
+  setFilename("");
+  setTool("pen");
+  setHasImage(false);
+  setPadding(0);
+  setBgColor("#ffffff");
+  setBgActiveIndex(null);
+  // (keep bgGallery — it's the user's saved library across sessions)
 
-    resetHistory();
-    userImageRef.current = null;
-    localStorage.removeItem(STORAGE.BG_IMAGE);
-    localStorage.removeItem(STORAGE.FILENAME);
-    localStorage.removeItem(STORAGE.USER_IMAGE);
-  };
+  resetHistory();
+  userImageRef.current = null;
+  localStorage.removeItem(STORAGE.BG_ACTIVE_INDEX);
+  localStorage.removeItem(STORAGE.FILENAME);
+  localStorage.removeItem(STORAGE.USER_IMAGE);
+  // Note: NOT removing STORAGE.BG_GALLERY so the library persists
+};
 
   const save = (targetW?: number, nameOfFile?: string) => {
     const c = fabricRef.current;
     if (!c) return;
     exportCanvas(c, targetW, nameOfFile);
-  };
-
-  const handleBgImgChange = (url: string | null) => {
-    setBgImageUrl(url);
-    if (url) safeSet(STORAGE.BG_IMAGE, url);
-    else localStorage.removeItem(STORAGE.BG_IMAGE);
   };
 
   return (
@@ -292,15 +331,20 @@ if (id === "text") addText(c, color, fontSize, fontFamily);
         onCrop={enterCrop}
         padding={padding}
         bgColor={bgColor}
-        bgImageUrl={bgImageUrl}
+        bgGallery={bgGallery}
+        bgActiveIndex={bgActiveIndex}
+        onAddBg={handleAddBg}
+        onRemoveBg={handleRemoveBg}
+        onSelectBg={handleSelectBg}
         onPaddingChange={setPadding}
         onBgColorChange={setBgColor}
-        onBgImageChange={handleBgImgChange}
         setCornerRadius={setCornerRadius}
         cornerRadius={cornerRadius}
         naturalWidth={naturalSize.w}
         naturalHeight={naturalSize.h}
         cropMode={cropMode}
+        canUndo={canUndo}
+        canRedo={canRedo}
       />
       <SecondaryToolbar
         tool={tool}
@@ -310,6 +354,8 @@ if (id === "text") addText(c, color, fontSize, fontFamily);
         onHighlightSizeChange={setHighlightSize}
         fontFamily={fontFamily}
         onFontFamilyChange={handleFontFamilyChange}
+        blurSize={blurSize}
+        onBlurSizeChange={setBlurSize}
       />
       <div
         ref={canvasWrapRef}

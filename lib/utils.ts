@@ -18,6 +18,9 @@ export function withAlpha(hex: string, alpha: number): string {
 export const STORAGE = {
     USER_IMAGE: "editor.userImage",
     BG_IMAGE: "editor.bgImage",
+    BG_GALLERY: "editor.bgGallery",          // NEW — JSON array of saved bg URLs
+    BG_ACTIVE_INDEX: "editor.bgActiveIndex", // NEW — index into the gallery
+    BG_GALLERY_MAX: 3,                       // NEW — maximum number of background images to store
     FILENAME: "editor.filename",
     PADDING: "editor.padding",
     MAX_LOCALSTORAGE_SIZE_MB : 30,

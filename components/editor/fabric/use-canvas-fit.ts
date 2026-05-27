@@ -88,11 +88,12 @@ export function useCanvasFit({
           ? prev
           : { w: Math.round(framedW), h: Math.round(framedH) },
       );
-
       if (historyRef.current.length === 0) {
-        historyRef.current = [JSON.stringify(c.toJSON())];
+        historyRef.current = [JSON.stringify(c.toObject(["selectable", "evented"]))];
         historyIdxRef.current = 0;
       }
+
+
     };
 
     fitRef.current = fit;

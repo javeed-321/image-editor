@@ -1,5 +1,13 @@
 "use client";
 
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import type { Tool } from "./editor-toolbar";
 
@@ -11,6 +19,8 @@ type Props = {
   onFontFamilyChange: (family: string) => void;
   highlightSize: number;
   onHighlightSizeChange: (n: number) => void;
+  blurSize: number;
+  onBlurSizeChange: (n: number) => void;
 };
 
 const FONT_FAMILIES = [
@@ -32,54 +42,59 @@ export function SecondaryToolbar({
   onHighlightSizeChange,
   fontFamily,
   onFontFamilyChange,
+  blurSize,
+  onBlurSizeChange,
 }: Props) {
-  if (tool !== "text" && tool !== "highlight") return null;
+  if (tool !== "text" && tool !== "highlight" && tool !== "blur") return null;
 
   return (
     <div className="border-b border-border bg-card/50">
       <div className="mx-auto w-full max-w-sm px-4 py-3">
         {tool === "text" && (
-  <div className="flex items-center gap-3">
-    {/* Font family */}
-    <div className="flex items-center gap-1.5">
-      <span className="text-xs text-muted-foreground shrink-0">Font</span>
-      <select
-        value={fontFamily}
-        onChange={(e) => onFontFamilyChange(e.target.value)}
-        className="h-8 w-36 shrink-0 rounded-md border border-border bg-background px-2 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-        style={{ fontFamily }}
-      >
-        {FONT_FAMILIES.map((f) => (
-          <option key={f} value={f} style={{ fontFamily: f }}>
-            {f}
-          </option>
-        ))}
-      </select>
-    </div>
+          <div className="flex items-center gap-4">
+            {/* Font family */}
+            <div className="flex items-center gap-2">
+              <Label className="shrink-0">Font</Label>
+              <Select
+                value={fontFamily}
+                onValueChange={(v) => {
+                  if (typeof v === "string") onFontFamilyChange(v);
+                }}
+              >
+                <SelectTrigger className="h-8 w-40" style={{ fontFamily }}>
+                  <SelectValue placeholder="Font" />
+                </SelectTrigger>
+                <SelectContent>
+                  {FONT_FAMILIES.map((f) => (
+                    <SelectItem key={f} value={f} style={{ fontFamily: f }}>
+                      {f}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-    {/* B / I / U toggles */}
- 
 
-    {/* Font size */}
-<div className="flex items-center gap-1.5 flex-1 min-w-[250px]">
-        <span className="text-xs text-muted-foreground shrink-0">Size</span>
-      <Slider
-        value={[fontSize]}
-        min={8}
-        max={120}
-        step={1}
-        onValueChange={(v) => {
-          const next = Array.isArray(v) ? v[0] : v;
-          if (typeof next === "number") onFontSizeChange(next);
-        }}
-        className="flex-1"
-      />
-      <span className="text-xs tabular-nums text-muted-foreground shrink-0 w-8 text-right">
-        {fontSize}
-      </span>
-    </div>
-  </div>
-)}
+            {/* Font size */}
+            <div className="flex items-center gap-2 flex-1 min-w-[250px]">
+              <Label className="shrink-0">Size</Label>
+              <Slider
+                value={[fontSize]}
+                min={8}
+                max={120}
+                step={1}
+                onValueChange={(v) => {
+                  const next = Array.isArray(v) ? v[0] : v;
+                  if (typeof next === "number") onFontSizeChange(next);
+                }}
+                className="flex-1"
+              />
+              <span className="text-xs tabular-nums text-muted-foreground shrink-0 w-8 text-right">
+                {fontSize}
+              </span>
+            </div>
+          </div>
+        )}
         {tool === "highlight" && (
           <SliderField
             label="Highlight size"
@@ -88,6 +103,16 @@ export function SecondaryToolbar({
             step={1}
             value={highlightSize}
             onChange={onHighlightSizeChange}
+          />
+        )}
+        {tool === "blur" && (
+          <SliderField
+            label="Blur size"
+            min={4}
+            max={80}
+            step={1}
+            value={blurSize}
+            onChange={onBlurSizeChange}
           />
         )}
       </div>
@@ -111,11 +136,8 @@ function SliderField({
   onChange: (n: number) => void;
 }) {
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <label className="text-sm font-medium">{label}</label>
-        <span className="text-sm text-muted-foreground">{value} px</span>
-      </div>
+    <div className="flex items-center gap-2">
+      <Label className="shrink-0">{label}</Label>
       <Slider
         value={[value]}
         min={min}
@@ -125,7 +147,11 @@ function SliderField({
           const next = Array.isArray(v) ? v[0] : v;
           if (typeof next === "number") onChange(next);
         }}
+        className="flex-1"
       />
+      <span className="text-xs tabular-nums text-muted-foreground shrink-0 w-8 text-right">
+        {value}
+      </span>
     </div>
   );
 }

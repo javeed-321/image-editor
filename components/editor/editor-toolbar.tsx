@@ -54,15 +54,21 @@ type Props = {
   onCrop: () => void;
   padding: number;
   bgColor: string;
-  bgImageUrl: string | null;
   onPaddingChange: (padding: number) => void;
   onBgColorChange: (color: string) => void;
-  onBgImageChange: (url: string | null) => void;
   setCornerRadius: (radius: number) => void;
   cornerRadius: number;
   cropMode?: boolean;
   naturalWidth: number;
   naturalHeight: number;
+  canUndo: boolean;
+canRedo: boolean;
+bgGallery: string[];
+bgActiveIndex: number | null;
+onAddBg: (dataUrl: string) => void;
+onRemoveBg: (index: number) => void;
+onSelectBg: (index: number | null) => void;
+
 };
 
 import { DiscardChangesDialog } from "./discard-changes";
@@ -82,15 +88,20 @@ export function EditorToolbar({
   onCrop,
   padding,
   bgColor,
-  bgImageUrl,
+  bgGallery,
+  bgActiveIndex,
   onPaddingChange,
   onBgColorChange,
-  onBgImageChange,
+  onAddBg,
+  onRemoveBg,
+  onSelectBg,
   setCornerRadius,
   cornerRadius,
   cropMode = false,
   naturalWidth,
   naturalHeight,
+  canUndo,
+  canRedo
 }: Props) {
   const [showColors, setShowColors] = useState(false);
   const colorBtnRef = useRef<HTMLDivElement>(null);
@@ -140,12 +151,7 @@ export function EditorToolbar({
           })}
 
           <div ref={colorBtnRef} className="relative">
-            <ToolButton
-              label="Color"
-              onClick={toggleColors}
-              aria-haspopup="menu"
-              aria-expanded={showColors}
-            >
+            <ToolButton label="Color" onClick={toggleColors}>
               <span
                 className="size-5 rounded-full border border-border"
                 style={{ backgroundColor: color }}
@@ -170,17 +176,16 @@ export function EditorToolbar({
                         color === co && "ring-2 ring-ring ring-offset-1",
                       )}
                       style={{ backgroundColor: co }}
-                      aria-label={co}
+                      title={co}
                     />
                   ))}
-                  <span className="mx-0.5 h-5 w-px bg-border" aria-hidden />
+                  <span className="mx-0.5 h-5 w-px bg-border" />
                   <label
                     className="relative flex size-6 cursor-pointer items-center justify-center rounded-full border border-border transition-transform hover:scale-110"
                     style={{
                       background:
                         "conic-gradient(from 0deg, #ef4444, #eab308, #22c55e, #3b82f6, #a855f7, #ef4444)",
                     }}
-                    aria-label="Custom color"
                     title="Custom color"
                   >
                     <input
@@ -196,10 +201,10 @@ export function EditorToolbar({
           </div>
           <Divider />
 
-          <ToolButton label="Undo" onClick={onUndo}>
+          <ToolButton label="Undo" onClick={onUndo} disabled={!canUndo}>
             <Undo2 className="size-5" />
           </ToolButton>
-          <ToolButton label="Redo" onClick={onRedo}>
+          <ToolButton label="Redo" onClick={onRedo} disabled={!canRedo}>
             <Redo2 className="size-5" />
           </ToolButton>
 
@@ -215,10 +220,13 @@ export function EditorToolbar({
           <BackgroundPopover
             padding={padding}
             bgColor={bgColor}
-            bgImageUrl={bgImageUrl}
+            bgGallery={bgGallery}
+            bgActiveIndex={bgActiveIndex}
             onPaddingChange={onPaddingChange}
             onBgColorChange={onBgColorChange}
-            onBgImageChange={onBgImageChange}
+            onAddBg={onAddBg}
+            onRemoveBg={onRemoveBg}
+            onSelectBg={onSelectBg}
             cornerRadius={cornerRadius}
             setCornerRadius={setCornerRadius}
           />
@@ -248,25 +256,32 @@ type ToolButtonProps = {
   active?: boolean;
   onClick: () => void;
   children: React.ReactNode;
-} & React.AriaAttributes;
+  disabled?: boolean;
+};
 
 function ToolButton({
   label,
   active = false,
   onClick,
   children,
-  ...aria
+  disabled = false,
 }: ToolButtonProps) {
   return (
     <button
       type="button"
       onClick={onClick}
       title={label}
+      disabled={disabled}
       className={cn(
-        "flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted",
-        active && "text-primary"
+        "flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition-all hover:bg-muted",
+        active && "text-primary",
+        (label === "Undo" || label === "Redo") &&
+          !disabled &&
+          "active:scale-90 active:bg-accent active:text-primary",
+        disabled && (label === "Undo" || label === "Redo")
+          ? "cursor-not-allowed opacity-50 hover:bg-transparent"
+          : "",
       )}
-      {...aria}
     >
       {children}
       <span className={cn(active && "font-semibold")}>{label}</span>
@@ -275,5 +290,5 @@ function ToolButton({
 }
 
 function Divider() {
-  return <span className="mx-1 h-12 w-px bg-border" aria-hidden />;
+  return <span className="mx-1 h-12 w-px bg-border" />;
 }

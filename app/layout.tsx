@@ -4,6 +4,7 @@ import "./globals.css";
 import { PromoBadge } from "@/components/promo-badge";
 import { JsonLd } from "@/components/json-ld";
 import { siteUrl } from "@/lib/site";
+import { Toaster } from "sonner";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -123,6 +124,8 @@ export default function RootLayout({
         <JsonLd data={websiteSchema} />
         <main className="flex flex-1 flex-col">{children}</main>
         <PromoBadge />
+          <Toaster position="top-center" richColors />   {/* ← new */}
+
       </body>
     </html>
   );

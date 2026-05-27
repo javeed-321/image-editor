@@ -109,8 +109,8 @@ export function BackgroundPopover({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium">Color</label>
-            <div className="flex flex-wrap items-center gap-1.5">
+            <label className="text-sm font-medium ">Color</label>
+            <div className=" mt-2 flex flex-wrap items-center gap-1.5">
               {BG_COLORS.map((co) => (
                 <button
                   key={co}
@@ -144,8 +144,8 @@ export function BackgroundPopover({
           </div>
 
           <div className="space-y-2">
-  <label className="text-sm font-medium mr-2">Background image</label>
-  <div className="flex items-center gap-2">
+  <label className="text-sm font-medium mr-2 mb-3">Background image</label>
+  <div className="flex items-center gap-2 mt-2">
     {Array.from({ length: STORAGE.BG_GALLERY_MAX }, (_, i) => {
       const url = bgGallery[i];
       const isActive = bgActiveIndex === i;

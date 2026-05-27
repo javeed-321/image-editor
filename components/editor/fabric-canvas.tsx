@@ -26,6 +26,7 @@ import { useCanvasTool } from "./fabric/use-canvas-tool";
 import { useCanvasBackground } from "./fabric/use-canvas-bg";
 import { useRoundedCorners } from "./fabric/use-rounded-corners";
 import { useCrop } from "./fabric/use-crop";
+import { toast } from "sonner";
 
 export default function FabricCanvas() {
   const canvasElRef = useRef<HTMLCanvasElement>(null);
@@ -108,7 +109,11 @@ export default function FabricCanvas() {
   };
 
   const handleAddBg = (dataUrl: string) => {
-    if (bgGallery.length >= STORAGE.BG_GALLERY_MAX) return;
+    if (bgGallery.length >= STORAGE.BG_GALLERY_MAX) {
+
+      toast.warning(`You can only save up to ${STORAGE.BG_GALLERY_MAX} background images. Please remove one to add a new one.`);
+      return;
+    }
     const next = [...bgGallery, dataUrl];
     setBgGallery(next);
     safeSet(STORAGE.BG_GALLERY, JSON.stringify(next));
@@ -118,7 +123,15 @@ export default function FabricCanvas() {
   const handleRemoveBg = (index: number) => {
     const next = bgGallery.filter((_, i) => i !== index);
     setBgGallery(next);
-    safeSet(STORAGE.BG_GALLERY, JSON.stringify(next));
+    const err=safeSet(STORAGE.BG_GALLERY, JSON.stringify(next));
+    if(err)
+    {
+       toast.error("Couldn't save image", {
+          description: err.message,
+          duration: 6000,
+        });
+    }
+    
     if (bgActiveIndex === index) handleSelectBg(null);
     else if (bgActiveIndex !== null && bgActiveIndex > index)
       handleSelectBg(bgActiveIndex - 1);
@@ -129,13 +142,13 @@ export default function FabricCanvas() {
 
 
 
-useEffect(() => {
-  safeSet(STORAGE.PADDING, String(padding));
-}, [padding]);
+  useEffect(() => {
+    safeSet(STORAGE.PADDING, String(padding));
+  }, [padding]);
 
-useEffect(() => {
-  safeSet(STORAGE.CORNER_RADIUS, String(cornerRadius));
-}, [cornerRadius]);
+  useEffect(() => {
+    safeSet(STORAGE.CORNER_RADIUS, String(cornerRadius));
+  }, [cornerRadius]);
 
 
   const { historyRef, historyIdxRef, pushHistory, restore, resetHistory, canUndo, canRedo } =
@@ -252,15 +265,13 @@ useEffect(() => {
       setImageSrc(dataUrl);
       setFilename(file.name);
 
-      if (file.size > STORAGE.MAX_LOCALSTORAGE_SIZE_BYTES) {
-        const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
-        console.error(
-          `Image is ${sizeMb} MB (max ${STORAGE.MAX_LOCALSTORAGE_SIZE_MB} MB). Not persisted to localStorage — will be lost on reload.`,
-        );
-        return;
+      const err = safeSet(STORAGE.USER_IMAGE, dataUrl);
+      if (err) {
+        toast.error("Couldn't save image", {
+          description: err.message,
+          duration: 6000,
+        });
       }
-
-      safeSet(STORAGE.USER_IMAGE, dataUrl);
       safeSet(STORAGE.FILENAME, file.name);
       setLoading(false);
     };
@@ -311,7 +322,7 @@ useEffect(() => {
     if (!c) return;
     const active = c.getActiveObjects();
     console.log(active);
-    if(active.length === 0) return ;
+    if (active.length === 0) return;
     deleteSelectedObjects(c, userImageRef.current);
     pushHistory();
   };

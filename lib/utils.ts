@@ -24,17 +24,19 @@ export const STORAGE = {
     FILENAME: "editor.filename",
     PADDING: "editor.padding",
       CORNER_RADIUS: "editor.cornerRadius",   // ← new
-    MAX_LOCALSTORAGE_SIZE_MB : 30,
-    MAX_LOCALSTORAGE_SIZE_BYTES : 30 * 1024 * 1024,
+    MAX_LOCALSTORAGE_SIZE_MB : 4,
+    MAX_LOCALSTORAGE_SIZE_BYTES : 4 * 1024 * 1024,
     MAX_W : 1100,
     MAX_H : 2000
   };
 
 
-  export   const safeSet = (key: string, value: string) => {
-      try {
-        localStorage.setItem(key, value);
-      } catch (e) {
-        console.warn(`localStorage failed for ${key}:`, e);
-      }
-    };
+export const safeSet = (key: string, value: string): Error | null => {
+  try {
+    localStorage.setItem(key, value);
+    return null;
+  } catch (e) {
+    console.warn(`localStorage failed for ${key}:`, e);
+    return e instanceof Error ? e : new Error(String(e));
+  }
+};

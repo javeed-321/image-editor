@@ -108,27 +108,36 @@ export default function FabricCanvas() {
     else safeSet(STORAGE.BG_ACTIVE_INDEX, String(index));
   };
 
-  const handleAddBg = (dataUrl: string) => {
-    // Check individual image size
-    const imageSizeBytes = new Blob([dataUrl]).size;
-    const maxSingleBgBytes = 5 * 1024 * 1024; // 5 MB per image (adjust as needed)
+ const handleAddBg = (dataUrl: string) => {
+  // Always add to in-memory gallery — user can use it this session regardless
+  const next = [...bgGallery, dataUrl];
+  setBgGallery(next);
+  handleSelectBg(next.length - 1);
 
-    if (imageSizeBytes >= maxSingleBgBytes) {
-      const sizeMb = (imageSizeBytes / (1024 * 1024)).toFixed(1);
-      toast.error(
-        `Background image is ${sizeMb} MB (max 5 MB). Large images won't be saved and will be lost on refresh.`,
-         { duration: 6000 });
-    }
+  // Check 1: single image too big to save by itself
+  const imageSizeBytes = new Blob([dataUrl]).size;
+  const maxSingleBgBytes = 5 * 1024 * 1024; // 5 MB per image
+  if (imageSizeBytes >= maxSingleBgBytes) {
+    const sizeMb = (imageSizeBytes / (1024 * 1024)).toFixed(1);
+    toast.error("Image too large to save", {
+      description: `${sizeMb} MB exceeds the 5 MB per-image limit. This image won't be saved and will be lost on refresh.`,
+      duration: 6000,
+    });
+    return; // skip save attempt — would fail anyway
+  }
 
-    // if (bgGallery.length >= STORAGE.BG_GALLERY_MAX) {
-    //   toast.warning(`You can only save up to ${STORAGE.BG_GALLERY_MAX} background images. Please remove one to add a new one.`);
-    //   return;
-    // }
-    const next = [...bgGallery, dataUrl];
-    setBgGallery(next);
-    safeSet(STORAGE.BG_GALLERY, JSON.stringify(next));
-    // handleSelectBg(next.length - 1); // auto-select newly added
-  };
+  // Check 2: total gallery size exceeds browser quota
+  const serialized = JSON.stringify(next);
+  const err = safeSet(STORAGE.BG_GALLERY, serialized);
+  if (err) {
+    const totalMb = (new Blob([serialized]).size / (1024 * 1024)).toFixed(1);
+    toast.warning("Gallery storage exceeded", {
+      description: `Gallery total is ${totalMb} MB, which exceeds the browser's storage limit. Some images may not persist on refresh.`,
+      duration: 6000,
+    });
+  }
+};
+
 
   const handleRemoveBg = (index: number) => {
     const next = bgGallery.filter((_, i) => i !== index);
@@ -182,8 +191,14 @@ export default function FabricCanvas() {
     userImageRef,
     fitRef,
   });
+  const { cropMode, enterCrop, cancelCrop, applyCrop } = useCrop({
+    fabricRef,
+    userImageRef,
+    fitRef,
+    pushHistory,
+  });
 
-  useCanvasTool({ tool, color, highlightSize, blurSize, fabricRef });
+  useCanvasTool({ tool, color, highlightSize, blurSize, fabricRef,hasImage, cropMode });
 
   useCanvasFit({
     hasImage,
@@ -200,12 +215,6 @@ export default function FabricCanvas() {
 
   useCanvasBackground({ bgImageUrl, hasImage, fabricRef, fitRef });
 
-  const { cropMode, enterCrop, cancelCrop, applyCrop } = useCrop({
-    fabricRef,
-    userImageRef,
-    fitRef,
-    pushHistory,
-  });
 
   const handleFontFamilyChange = (family: string) => {
     setFontFamily(family);

@@ -7,7 +7,10 @@ type Params = {
   color: string;
   highlightSize: number;
   blurSize: number;
+    cropMode: boolean;
+
   fabricRef: RefObject<fabric.Canvas | null>;
+  hasImage: boolean;
 };
 
 export function useCanvasTool({
@@ -16,10 +19,13 @@ export function useCanvasTool({
   highlightSize,
   blurSize,
   fabricRef,
+  hasImage,
+  cropMode ,
 }: Params) {
   useEffect(() => {
     const c = fabricRef.current;
     if (!c) return;
+    if(cropMode) return ;
 
     if (tool === "pen") {
       c.isDrawingMode = true;
@@ -63,5 +69,5 @@ export function useCanvasTool({
 } else {
       c.isDrawingMode = false;
     }
-  }, [tool, color, highlightSize, blurSize, fabricRef]);
+  }, [tool, color, highlightSize, blurSize, fabricRef,hasImage,cropMode]);
 }

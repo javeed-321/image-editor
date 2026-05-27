@@ -52,6 +52,7 @@ export function useCrop({
     c.setActiveObject(rect);
     cropRectRef.current = rect;
     setCropMode(true);
+    // c.isDrawingMode=true;
   }, [fabricRef, userImageRef, cropMode]);
 
   const cancelCrop = useCallback(() => {

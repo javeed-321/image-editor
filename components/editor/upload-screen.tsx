@@ -164,21 +164,21 @@ export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
             ))}
           </div>
         </div>
-        <div className="ml-auto hidden items-center gap-2 lg:flex">
-          <span title="Cancel upload">
-            <Button variant="outline" size="lg" disabled aria-label="Cancel upload">
-              <X className="size-4" />
-              Cancel
-            </Button>
-          </span>
+   <div className="ml-auto hidden items-center gap-2 lg:flex">
+  <span className="[&:hover>button]:opacity-30 [&:hover>button]:transition-opacity">
+    <Button variant="outline" size="lg" disabled aria-label="Cancel upload" className="cursor-not-allowed opacity-50 hover:bg-transparent">
+      <X className="size-4" />
+      Cancel
+    </Button>
+  </span>
 
-          <span title="Save image">
-            <Button variant="outline" size="lg" disabled aria-label="Save" className="cursor-not-allowed">
-              <Download className="size-4" />
-              Save
-            </Button>
-          </span>
-        </div>
+  <span className="[&:hover>button]:opacity-30 [&:hover>button]:transition-opacity">
+    <Button variant="outline" size="lg" disabled aria-label="Save" className="cursor-not-allowed opacity-50 hover:bg-transparent">
+      <Download className="size-4" />
+      Save
+    </Button>
+  </span>
+</div>
       </div>
       <Toaster />
 

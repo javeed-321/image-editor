@@ -37,7 +37,10 @@ const json = JSON.stringify(c.toObject(["selectable", "evented"]));
       try {
         restoringRef.current = true;
         historyIdxRef.current = nextIndex;
+
+        const savedBg = canvas.backgroundImage
         await canvas.loadFromJSON(history[nextIndex]);
+        canvas.backgroundImage=savedBg; 
         canvas.requestRenderAll();
       } catch (err) {
         console.error("Failed to restore canvas state:", err);

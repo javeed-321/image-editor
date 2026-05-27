@@ -34,6 +34,21 @@ export default function FabricCanvas() {
   const userImageRef = useRef<fabric.FabricImage | null>(null);
   const fitRef = useRef<() => void>(() => { });
 
+
+
+  const [padding, setPadding] = useState<number>(() => {
+    if (typeof window === "undefined") return 15;
+    const v = localStorage.getItem(STORAGE.PADDING);
+    return v !== null ? Number(v) : 15;
+  });
+
+  const [cornerRadius, setCornerRadius] = useState<number>(() => {
+    if (typeof window === "undefined") return 15;
+    const v = localStorage.getItem(STORAGE.CORNER_RADIUS);
+    return v !== null ? Number(v) : 15;
+  });
+
+
   const [imageSrc, setImageSrc] = useState<string | null>(() =>
     typeof window !== "undefined"
       ? localStorage.getItem(STORAGE.USER_IMAGE)
@@ -44,28 +59,30 @@ export default function FabricCanvas() {
       ? localStorage.getItem(STORAGE.FILENAME) ?? ""
       : "",
   );
-const [bgGallery, setBgGallery] = useState<string[]>(() => {
-  if (typeof window === "undefined") return [];
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE.BG_GALLERY) ?? "[]");
-  } catch {
-    return [];
-  }
-});
-const [bgActiveIndex, setBgActiveIndex] = useState<number | null>(() => {
-  if (typeof window === "undefined") return null;
-  const v = localStorage.getItem(STORAGE.BG_ACTIVE_INDEX);
-  return v === null ? null : Number(v);
-});
+  const [bgGallery, setBgGallery] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      return JSON.parse(localStorage.getItem(STORAGE.BG_GALLERY) ?? "[]");
+    } catch {
+      return [];
+    }
+  });
+  const [bgActiveIndex, setBgActiveIndex] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null;
+    const v = localStorage.getItem(STORAGE.BG_ACTIVE_INDEX);
+    return v === null ? null : Number(v);
+  });
 
-const bgImageUrl =
-  bgActiveIndex !== null ? bgGallery[bgActiveIndex] ?? null : null;
+
+
+
+  const bgImageUrl =
+    bgActiveIndex !== null ? bgGallery[bgActiveIndex] ?? null : null;
 
 
   const [tool, setTool] = useState<Tool>("pen");
   const [color, setColor] = useState<string>("#ef4444");
   const [hasImage, setHasImage] = useState<boolean>(false);
-  const [padding, setPadding] = useState<number>(15);
   const [highlightSize, setHighlightSize] = useState<number>(15);
   const [blurSize, setBlurSize] = useState<number>(15);
   const [bgColor, setBgColor] = useState<string>("#ffffff");
@@ -74,7 +91,6 @@ const bgImageUrl =
       typeof window !== "undefined" &&
       !!localStorage.getItem(STORAGE.USER_IMAGE),
   );
-  const [cornerRadius, setCornerRadius] = useState<number>(15);
   const [naturalSize, setNaturalSize] = useState<{ w: number; h: number }>({
     w: 0,
     h: 0,
@@ -85,34 +101,41 @@ const bgImageUrl =
 
 
 
- const handleSelectBg = (index: number | null) => {
-  setBgActiveIndex(index);
-  if (index === null) localStorage.removeItem(STORAGE.BG_ACTIVE_INDEX);
-  else safeSet(STORAGE.BG_ACTIVE_INDEX, String(index));
-};
+  const handleSelectBg = (index: number | null) => {
+    setBgActiveIndex(index);
+    if (index === null) localStorage.removeItem(STORAGE.BG_ACTIVE_INDEX);
+    else safeSet(STORAGE.BG_ACTIVE_INDEX, String(index));
+  };
 
-const handleAddBg = (dataUrl: string) => {
-  if (bgGallery.length >= STORAGE.BG_GALLERY_MAX) return;
-  const next = [...bgGallery, dataUrl];
-  setBgGallery(next);
-  safeSet(STORAGE.BG_GALLERY, JSON.stringify(next));
-  handleSelectBg(next.length - 1); // auto-select newly added
-};
+  const handleAddBg = (dataUrl: string) => {
+    if (bgGallery.length >= STORAGE.BG_GALLERY_MAX) return;
+    const next = [...bgGallery, dataUrl];
+    setBgGallery(next);
+    safeSet(STORAGE.BG_GALLERY, JSON.stringify(next));
+    handleSelectBg(next.length - 1); // auto-select newly added
+  };
 
-const handleRemoveBg = (index: number) => {
-  const next = bgGallery.filter((_, i) => i !== index);
-  setBgGallery(next);
-  safeSet(STORAGE.BG_GALLERY, JSON.stringify(next));
-  if (bgActiveIndex === index) handleSelectBg(null);
-  else if (bgActiveIndex !== null && bgActiveIndex > index)
-    handleSelectBg(bgActiveIndex - 1);
-};
-
-
+  const handleRemoveBg = (index: number) => {
+    const next = bgGallery.filter((_, i) => i !== index);
+    setBgGallery(next);
+    safeSet(STORAGE.BG_GALLERY, JSON.stringify(next));
+    if (bgActiveIndex === index) handleSelectBg(null);
+    else if (bgActiveIndex !== null && bgActiveIndex > index)
+      handleSelectBg(bgActiveIndex - 1);
+  };
 
 
 
 
+
+
+useEffect(() => {
+  safeSet(STORAGE.PADDING, String(padding));
+}, [padding]);
+
+useEffect(() => {
+  safeSet(STORAGE.CORNER_RADIUS, String(cornerRadius));
+}, [cornerRadius]);
 
 
   const { historyRef, historyIdxRef, pushHistory, restore, resetHistory, canUndo, canRedo } =
@@ -286,27 +309,28 @@ const handleRemoveBg = (index: number) => {
   const deleteSelected = () => {
     const c = fabricRef.current;
     if (!c) return;
+    const active = c.getActiveObjects();
+    console.log(active);
+    if(active.length === 0) return ;
     deleteSelectedObjects(c, userImageRef.current);
     pushHistory();
   };
 
- const cancel = () => {
-  setImageSrc(null);
-  setFilename("");
-  setTool("pen");
-  setHasImage(false);
-  setPadding(0);
-  setBgColor("#ffffff");
-  setBgActiveIndex(null);
-  // (keep bgGallery — it's the user's saved library across sessions)
-
-  resetHistory();
-  userImageRef.current = null;
-  localStorage.removeItem(STORAGE.BG_ACTIVE_INDEX);
-  localStorage.removeItem(STORAGE.FILENAME);
-  localStorage.removeItem(STORAGE.USER_IMAGE);
-  // Note: NOT removing STORAGE.BG_GALLERY so the library persists
-};
+  const cancel = () => {
+    setImageSrc(null);
+    setFilename("");
+    setTool("pen");
+    setHasImage(false);
+    setBgColor("#ffffff");
+    setBgActiveIndex(null);
+    // (keep bgGallery — it's the user's saved library across sessions)
+    resetHistory();
+    userImageRef.current = null;
+    // localStorage.removeItem(STORAGE.BG_ACTIVE_INDEX);
+    localStorage.removeItem(STORAGE.FILENAME);
+    localStorage.removeItem(STORAGE.USER_IMAGE);
+    // Note: NOT removing STORAGE.BG_GALLERY so the library persists
+  };
 
   const save = (targetW?: number, nameOfFile?: string) => {
     const c = fabricRef.current;

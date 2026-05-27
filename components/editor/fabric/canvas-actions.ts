@@ -35,6 +35,9 @@ export function deleteSelectedObjects(
   c: fabric.Canvas,
   userImg: fabric.FabricImage | null,
 ) {
+
+  if(c.getActiveObjects().length === 0) return; 
+
   c.getActiveObjects().forEach((o) => {
     if (o === userImg) return;
     c.remove(o);

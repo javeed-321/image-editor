@@ -23,6 +23,7 @@ export const STORAGE = {
     BG_GALLERY_MAX: 3,                       // NEW — maximum number of background images to store
     FILENAME: "editor.filename",
     PADDING: "editor.padding",
+      CORNER_RADIUS: "editor.cornerRadius",   // ← new
     MAX_LOCALSTORAGE_SIZE_MB : 30,
     MAX_LOCALSTORAGE_SIZE_BYTES : 30 * 1024 * 1024,
     MAX_W : 1100,

@@ -1,4 +1,5 @@
 import * as fabric from "fabric";
+import { toast } from "sonner";
 
 export function rotateCanvas(
   c: fabric.Canvas,
@@ -46,16 +47,27 @@ export function deleteSelectedObjects(
   c.requestRenderAll();
 }
 
+
+
+
+
 export function exportCanvas(
-  c: fabric.Canvas,
-  targetW?: number,
-  fileName?: string,
+     c: fabric.Canvas,
+   targetW?: number,
+   fileName?: string,
+
 ) {
-  const z = c.getZoom() || 1;
-  const multiplier = targetW && targetW > 0 ? targetW / c.getWidth() : 1 / z;
-  const data = c.toDataURL({ format: "png", multiplier });
-  const a = document.createElement("a");
-  a.href = data;
-  a.download = fileName || "edited.png";
-  a.click();
+  try {
+    const z = c.getZoom() || 1;
+    const multiplier = targetW && targetW > 0 ? targetW / c.getWidth() : 1 / z;
+    const data = c.toDataURL({ format: "png", multiplier });
+    const a = document.createElement("a");
+    a.href = data;
+    a.download = fileName || "edited.png";
+    a.click();
+  } catch (e) {
+    toast.error("Couldn't export image", {
+      description: "The image source blocks exporting (CORS). Try uploading the file directly.",
+    });
+  }
 }

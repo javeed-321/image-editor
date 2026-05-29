@@ -1,6 +1,7 @@
 import { useEffect, type RefObject } from "react";
 import * as fabric from "fabric";
 import { STORAGE } from "@/lib/utils";
+import { toast } from "sonner";
 
 type Params = {
   imageSrc: string | null;
@@ -64,8 +65,12 @@ export function useCanvasInit({
           fitRef.current();
         });
       } catch {
-        console.log("Failed to load image in fabric canvas");
-      } finally {
+        toast.error("Couldn't load that image", { description: "It may have moved or blocks loading." });
+        // setImageSrc(null);                 
+        localStorage.removeItem(STORAGE.USER_IMAGE);
+      }
+
+      finally {
         setLoading(false);
       }
     };

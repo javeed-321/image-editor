@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 
-import { Frame, ImageIcon, Upload, X } from "lucide-react";
+import { Frame, Upload, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
 import { cn, STORAGE } from "@/lib/utils";

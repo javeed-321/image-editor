@@ -142,7 +142,7 @@ export default function FabricCanvas() {
   const handleRemoveBg = (index: number) => {
     const next = bgGallery.filter((_, i) => i !== index);
     setBgGallery(next);
-    const err = safeSet(STORAGE.BG_GALLERY, JSON.stringify(next));
+    safeSet(STORAGE.BG_GALLERY, JSON.stringify(next));
     // if (err) {
     //   toast.error("Couldn't save image", {
     //     description: err.message,
@@ -170,7 +170,7 @@ export default function FabricCanvas() {
 
 
   const { historyRef, historyIdxRef, pushHistory, restore, resetHistory, canUndo, canRedo } =
-    useCanvasHistory(fabricRef);
+    useCanvasHistory(fabricRef,userImageRef,fitRef);
 
 
   useCanvasInit({
@@ -342,6 +342,7 @@ export default function FabricCanvas() {
     const userImg = userImageRef.current;
     if (!c || !userImg) return;
     rotateCanvas(c, userImg, padding, fitRef.current);
+    pushHistory();
   };
 
   const deleteSelected = () => {

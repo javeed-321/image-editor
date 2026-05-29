@@ -37,11 +37,16 @@ export function SaveMenu({
   const [customWidth, setCustomWidth] = useState("");
 
   // Reset filename + custom-width default each time the panel opens.
-  useEffect(() => {
-    if (!open) return;
-    setDownloadFileName(filename || "untitled");
-    setCustomWidth(naturalWidth ? String(naturalWidth) : "");
-  }, [open, filename, naturalWidth]);
+  // Done during render (not in an effect) so it runs before paint and avoids
+  // the cascading-render the react-hooks lint rule flags.
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setDownloadFileName(filename || "untitled");
+      setCustomWidth(naturalWidth ? String(naturalWidth) : "");
+    }
+  }
 
   // Close on outside click.
   useEffect(() => {
@@ -63,12 +68,15 @@ export function SaveMenu({
     setOpen(false);
   };
 
-  const downloadCustom = () => {
-    const w = Number(customWidth);
-    if (!Number.isFinite(w) || w <= 0) return;
-    onSave(Math.round(w), downloadFileName);
-    setOpen(false);
-  };
+ const MAX_EXPORT_PX = 8000;
+const downloadCustom = () => {
+  const w = Number(customWidth);
+  if (!Number.isFinite(w) || w <= 0) return;
+  const clamped = Math.min(Math.round(w), MAX_EXPORT_PX);
+  onSave(clamped, downloadFileName);
+  setOpen(false);
+};
+
 
   const customWidthNum = Number(customWidth);
   const customValid = Number.isFinite(customWidthNum) && customWidthNum > 0;

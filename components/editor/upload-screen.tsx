@@ -164,21 +164,21 @@ export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
             ))}
           </div>
         </div>
-   <div className="ml-auto hidden items-center gap-2 lg:flex">
-  <span className="[&:hover>button]:opacity-30 [&:hover>button]:transition-opacity">
-    <Button variant="outline" size="lg" disabled aria-label="Cancel upload" className="cursor-not-allowed opacity-50 hover:bg-transparent">
-      <X className="size-4" />
-      Cancel
-    </Button>
-  </span>
+        <div className="ml-auto hidden items-center gap-2 lg:flex">
+          <span className="[&:hover>button]:opacity-30 [&:hover>button]:transition-opacity">
+            <Button variant="outline" size="lg" disabled aria-label="Cancel upload" className="cursor-not-allowed opacity-50 hover:bg-transparent">
+              <X className="size-4" />
+              Cancel
+            </Button>
+          </span>
 
-  <span className="[&:hover>button]:opacity-30 [&:hover>button]:transition-opacity">
-    <Button variant="outline" size="lg" disabled aria-label="Save" className="cursor-not-allowed opacity-50 hover:bg-transparent">
-      <Download className="size-4" />
-      Save
-    </Button>
-  </span>
-</div>
+          <span className="[&:hover>button]:opacity-30 [&:hover>button]:transition-opacity">
+            <Button variant="outline" size="lg" disabled aria-label="Save" className="cursor-not-allowed opacity-50 hover:bg-transparent">
+              <Download className="size-4" />
+              Save
+            </Button>
+          </span>
+        </div>
       </div>
       <Toaster />
 
@@ -199,7 +199,7 @@ export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
             pickFiles(e.dataTransfer.files);
           }}
         >
-          <div className="flex flex-col items-center gap-5 px-4 py-10 text-center sm:gap-6 sm:px-6 sm:py-16">
+          <div className="flex flex-col items-center gap-5 px-4 py-10 text-center sm:gap-6 sm:px-6 sm:py-16 hover:bg-muted">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted text-muted-foreground sm:h-20 sm:w-20">
               <Upload className="size-7 sm:size-9" />
             </div>

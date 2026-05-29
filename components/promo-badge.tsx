@@ -1,12 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import { ArrowUpRight, X } from "lucide-react";
 
 export function PromoBadge() {
   const [hidden, setHidden] = useState(false);
 
+  // Auto-hide the badge 6 seconds after it appears.
+  useEffect(() => {
+    const timer = setTimeout(() => setHidden(true), 6000);
+    return () => clearTimeout(timer);
+  }, []);
+
   if (hidden) return null;
+
 
   const dismiss = (e: React.MouseEvent) => {
     e.preventDefault();

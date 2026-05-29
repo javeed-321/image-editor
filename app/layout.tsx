@@ -124,7 +124,7 @@ export default function RootLayout({
         <JsonLd data={websiteSchema} />
         <main className="flex min-h-0 flex-1 flex-col">{children}</main>
         <PromoBadge />
-          <Toaster position="top-center" richColors />   {/* ← new */}
+        <Toaster position="top-center" richColors />   {/* ← new */}
 
       </body>
     </html>

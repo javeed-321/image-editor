@@ -71,17 +71,44 @@ export function useCrop({
     const rect = cropRectRef.current;
     if (!c || !img || !rect) return;
 
-    const imgBounds = img.getBoundingRect();
-    const scale = img.scaleX ?? 1;
+    const cropX0 = img.cropX ?? 0;
+    const cropY0 = img.cropY ?? 0;
+    const W = img.width ?? 0;
+    const H = img.height ?? 0;
 
-    // Convert rect (canvas pixels) → source-image pixels.
-    const cropX =
-      ((rect.left ?? 0) - imgBounds.left) / scale + (img.cropX ?? 0);
-    const cropY = ((rect.top ?? 0) - imgBounds.top) / scale + (img.cropY ?? 0);
-    const cropW = rect.getScaledWidth() / scale;
-    const cropH = rect.getScaledHeight() / scale;
+    // scene coords -> image-local coords (source pixels, centered at the image center)
+    const inv = fabric.util.invertTransform(img.calcTransformMatrix());
 
-    img.set({ cropX, cropY, width: cropW, height: cropH });
+    // crop rect corners in scene space (rect is axis-aligned, origin top-left)
+    const left = rect.left ?? 0;
+    const top = rect.top ?? 0;
+    const sw = rect.getScaledWidth();
+    const sh = rect.getScaledHeight();
+    const corners = [
+      new fabric.Point(left, top),
+      new fabric.Point(left + sw, top),
+      new fabric.Point(left + sw, top + sh),
+      new fabric.Point(left, top + sh),
+    ];
+
+    // map each corner into source-pixel space
+    const pts = corners.map((p) => {
+      const local = fabric.util.transformPoint(p, inv); // centered, source px
+      return { x: cropX0 + local.x + W / 2, y: cropY0 + local.y + H / 2 };
+    });
+
+    const minX = Math.min(...pts.map((p) => p.x));
+    const minY = Math.min(...pts.map((p) => p.y));
+    const maxX = Math.max(...pts.map((p) => p.x));
+    const maxY = Math.max(...pts.map((p) => p.y));
+
+    // clamp to the currently visible source region
+    const newCropX = Math.min(Math.max(minX, cropX0), cropX0 + W);
+    const newCropY = Math.min(Math.max(minY, cropY0), cropY0 + H);
+    const newW = Math.min(maxX, cropX0 + W) - newCropX;
+    const newH = Math.min(maxY, cropY0 + H) - newCropY;
+
+    img.set({ cropX: newCropX, cropY: newCropY, width: newW, height: newH });
     img.setCoords();
 
     c.remove(rect);
@@ -91,6 +118,7 @@ export function useCrop({
     pushHistory();
     fitRef.current();
   }, [fabricRef, userImageRef, fitRef, pushHistory]);
+
 
   return { cropMode, enterCrop, cancelCrop, applyCrop };
 }

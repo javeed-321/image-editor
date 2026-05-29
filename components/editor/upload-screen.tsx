@@ -235,10 +235,10 @@ export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
                   role="menu"
                   className="absolute top-full left-0 right-0 z-10 mt-2 overflow-hidden rounded-xl border border-border bg-card text-left shadow-lg"
                 >
-                  <button
-                    type="button"
+                  <Button
+                    variant="ghost"
                     role="menuitem"
-                    className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-muted"
+                    className="flex w-full justify-start items-center gap-2 px-3 py-2 text-sm h-auto rounded-none"
                     onClick={() => {
                       setShowMenu(false);
                       fileInputRef.current?.click();
@@ -246,11 +246,11 @@ export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
                   >
                     <Upload className="size-4" />
                     From device
-                  </button>
-                  <button
-                    type="button"
+                  </Button>
+                  <Button
+                    variant="ghost"
                     role="menuitem"
-                    className="flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-muted"
+                    className="flex w-full justify-start items-center gap-2 px-3 py-2 text-sm h-auto rounded-none"
                     onClick={() => {
                       setShowMenu(false);
                       setShowUrlDialog(true);
@@ -258,7 +258,7 @@ export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
                   >
                     <LinkIcon className="size-4" />
                     From URL
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>

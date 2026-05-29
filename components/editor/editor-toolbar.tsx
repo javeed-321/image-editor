@@ -213,8 +213,12 @@ export function EditorToolbar({
             <Crop className={cn("size-5", cropMode && "stroke-[2.5]")} />
           </ToolButton>
 
-          <ToolButton label="Rotate" onClick={onRotate}>
-            <RotateCw className="size-5" />
+          <ToolButton label="Rotate" onClick={onRotate}   
+          className="[&_svg]:transition-transform 
+          [&_svg]:duration-300 
+          active:[&_svg]:rotate-90"
+>
+            <RotateCw className="size-5 " />
           </ToolButton>
 
           <BackgroundPopover
@@ -265,7 +269,8 @@ function ToolButton({
   onClick,
   children,
   disabled = false,
-}: ToolButtonProps) {
+  className
+}: ToolButtonProps & {className?: string}) {
   return (
     <button
       type="button"
@@ -280,7 +285,7 @@ function ToolButton({
           "active:scale-90 active:bg-accent active:text-primary",
         disabled && (label === "Undo" || label === "Redo")
           ? "cursor-not-allowed opacity-50 hover:bg-transparent"
-          : "",
+          : "",className
       )}
     >
       {children}

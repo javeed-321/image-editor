@@ -275,6 +275,44 @@ export default function FabricCanvas() {
   }, [hasImage, fontSize]);
 
 
+// Keyboard shortcuts: undo / redo / save / delete
+useEffect(() => {
+  if (!hasImage) return;
+
+  const isTyping = () => {
+    const el = document.activeElement as HTMLElement | null;
+    if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable))
+      return true;
+    const active = fabricRef.current?.getActiveObject();
+    return active instanceof fabric.IText && active.isEditing;
+  };
+
+  const onKeyDown = (e: KeyboardEvent) => {
+    const c = fabricRef.current;
+    if (!c || isTyping()) return;
+
+    const mod = e.ctrlKey || e.metaKey;
+    const key = e.key.toLowerCase();
+
+    // Save / export
+    if (mod && key === "s") { e.preventDefault(); exportCanvas(c, undefined, filename); return; }
+
+    // Undo / Redo
+    if (mod && key === "z") { e.preventDefault(); restore(e.shiftKey ? 1 : -1); return; }
+    if (mod && key === "y") { e.preventDefault(); restore(1); return; }
+
+    // Delete selected (ignore if nothing is selected)
+    if (e.key === "Delete" || e.key === "Backspace") {
+      if (c.getActiveObjects().length === 0) return;
+      e.preventDefault();
+      deleteSelectedObjects(c, userImageRef.current);
+      pushHistory();
+    }
+  };
+
+  window.addEventListener("keydown", onKeyDown);
+  return () => window.removeEventListener("keydown", onKeyDown);
+}, [hasImage, filename, restore, pushHistory, fabricRef, userImageRef]);
 
    
 

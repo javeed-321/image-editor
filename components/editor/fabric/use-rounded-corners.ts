@@ -7,6 +7,7 @@ type Params = {
   fabricRef: RefObject<fabric.Canvas | null>;
   userImageRef: RefObject<fabric.FabricImage | null>;
   fitRef: RefObject<() => void>;
+  cropMode?: boolean;
 };
 
 export function useRoundedCorners({
@@ -15,6 +16,7 @@ export function useRoundedCorners({
   fabricRef,
   userImageRef,
   fitRef,
+  cropMode,
 }: Params) {
   useEffect(() => {
     if (!hasImage) return;
@@ -40,5 +42,5 @@ export function useRoundedCorners({
     img.setCoords();
     c.requestRenderAll();
     fitRef.current?.();
-  }, [cornerRadius, hasImage, fabricRef, userImageRef, fitRef]);
+  }, [cornerRadius, hasImage, fabricRef, userImageRef, fitRef, cropMode]);
 }

@@ -121,7 +121,9 @@ export default function FabricCanvas() {
     const sizeMb = (imageSizeBytes / (1024 * 1024)).toFixed(1);
     toast.error("Image too large to save", {
       description: `${sizeMb} MB exceeds the 5 MB per-image limit. This image won't be saved and will be lost on refresh.`,
-      duration: 6000,
+      duration: 4000,
+        closeButton: true,
+
     });
     return; // skip save attempt — would fail anyway
   }
@@ -133,7 +135,9 @@ export default function FabricCanvas() {
     const totalMb = (new Blob([serialized]).size / (1024 * 1024)).toFixed(1);
     toast.warning("Gallery storage exceeded", {
       description: `Gallery total is ${totalMb} MB, which exceeds the browser's storage limit. Some images may not persist on refresh.`,
-      duration: 6000,
+      duration: 4000,
+        closeButton: true,
+
     });
   }
 };
@@ -184,19 +188,22 @@ export default function FabricCanvas() {
     setHasImage,
   });
 
-  useRoundedCorners({
-    cornerRadius,
-    hasImage,
-    fabricRef,
-    userImageRef,
-    fitRef,
-  });
   const { cropMode, enterCrop, cancelCrop, applyCrop } = useCrop({
     fabricRef,
     userImageRef,
     fitRef,
     pushHistory,
   });
+
+  useRoundedCorners({
+    cornerRadius,
+    hasImage,
+    fabricRef,
+    userImageRef,
+    fitRef,
+    cropMode
+  });
+ 
 
   useCanvasTool({ tool, color, highlightSize, blurSize, fabricRef,hasImage, cropMode });
 
@@ -297,9 +304,9 @@ useEffect(() => {
     // Save / export
     if (mod && key === "s") { e.preventDefault(); exportCanvas(c, undefined, filename); return; }
 
-    // Undo / Redo
-    if (mod && key === "z") { e.preventDefault(); restore(e.shiftKey ? 1 : -1); return; }
-    if (mod && key === "y") { e.preventDefault(); restore(1); return; }
+    // Undo / Redo (exit crop first so stale crop lines never linger)
+    if (mod && key === "z") { e.preventDefault(); if (cropMode) cancelCrop(); restore(e.shiftKey ? 1 : -1); return; }
+    if (mod && key === "y") { e.preventDefault(); if (cropMode) cancelCrop(); restore(1); return; }
 
     // Delete selected (ignore if nothing is selected)
     if (e.key === "Delete" || e.key === "Backspace") {
@@ -312,7 +319,7 @@ useEffect(() => {
 
   window.addEventListener("keydown", onKeyDown);
   return () => window.removeEventListener("keydown", onKeyDown);
-}, [hasImage, filename, restore, pushHistory, fabricRef, userImageRef]);
+}, [hasImage, filename, restore, pushHistory, fabricRef, userImageRef, cropMode, cancelCrop]);
 
    
 
@@ -422,8 +429,8 @@ useEffect(() => {
         tool={tool}
         color={color}
         onTool={handleTool}
-        onUndo={() => restore(-1)}
-        onRedo={() => restore(1)}
+        onUndo={() => { if (cropMode) cancelCrop(); restore(-1); }}
+        onRedo={() => { if (cropMode) cancelCrop(); restore(1); }}
         onColorChange={setColor}
         onDelete={deleteSelected}
         onCancel={cancel}
@@ -475,7 +482,7 @@ useEffect(() => {
         )}
 
         {cropMode && (
-          <div className="fixed bottom-20 left-1/2 z-30 flex -translate-x-1/2 items-center gap-2 rounded-full border border-border bg-card p-1 shadow-md md:bottom-6">
+    <div className="fixed bottom-24 right-4 z-30 flex items-center gap-2 rounded-full border border-border bg-card p-1 shadow-md lg:bottom-[100px]">
             <button
               type="button"
               onClick={cancelCrop}

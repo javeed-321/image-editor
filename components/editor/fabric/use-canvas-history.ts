@@ -17,7 +17,10 @@ export function useCanvasHistory(fabricRef: RefObject<fabric.Canvas | null>, use
   const pushHistory = useCallback(() => {
     const c = fabricRef.current;
     if (!c || restoringRef.current) return;
-    const json = JSON.stringify(c.toObject(["selectable", "evented"]));
+    const json = JSON.stringify(c.toObject(["selectable", "evented","isUserImage"]));
+    // Skip no-op snapshots (e.g. resizing the crop rect, which is excluded from
+    // export, leaves the serialized state unchanged) so undo has no dead steps.
+    if (json === historyRef.current[historyIdxRef.current]) return;
     historyRef.current = historyRef.current.slice(0, historyIdxRef.current + 1);
     historyRef.current.push(json);
     historyIdxRef.current = historyRef.current.length - 1;
@@ -38,9 +41,11 @@ export function useCanvasHistory(fabricRef: RefObject<fabric.Canvas | null>, use
         restoringRef.current = true;
         historyIdxRef.current = nextIndex;
 
+        await canvas.loadFromJSON(history[nextIndex] )
         const savedBg = canvas.backgroundImage;
         await canvas.loadFromJSON(history[nextIndex]);
         canvas.backgroundImage = savedBg;
+        canvas.requestRenderAll();
 
         // loadFromJSON rebuilds every object as a NEW instance, so the old
         // userImageRef is now dead. Re-point it at the restored base image

@@ -53,7 +53,7 @@ export function useCanvasInit({
           originX: "center",
           originY: "center",
         });
-
+      (img as any).isUserImage = true ;
         c.add(img);
         c.sendObjectToBack(img);
         c.setDimensions({ width: w * scale, height: h * scale });

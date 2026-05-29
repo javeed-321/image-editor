@@ -199,7 +199,7 @@ export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
             pickFiles(e.dataTransfer.files);
           }}
         >
-          <div className="flex flex-col items-center gap-5 px-4 py-10 text-center sm:gap-6 sm:px-6 sm:py-16 hover:bg-muted">
+          <div className="flex flex-col items-center gap-5 px-4 py-10 text-center sm:gap-6 sm:px-6 sm:py-16 hover:bg-muted rounded-[25px]">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted text-muted-foreground sm:h-20 sm:w-20">
               <Upload className="size-7 sm:size-9" />
             </div>
@@ -359,8 +359,7 @@ function PreviewToolButton({
       type="button"
       onClick={onClick}
       title={label}
-      className="flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted"
-    >
+className="flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition-colors  border border-transparent hover:border-border"    >
       {children}
       <span>{label}</span>
     </button>

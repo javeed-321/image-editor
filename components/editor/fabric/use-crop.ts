@@ -33,6 +33,7 @@ export function useCrop({
       height: b.height,
       originX: "left",
       originY: "top",
+      excludeFromExport: true, // keep the crop rect out of history & saved JSON
       centeredScaling: false,
       centeredRotation: false,
       lockScalingFlip: true,
@@ -115,8 +116,9 @@ export function useCrop({
     cropRectRef.current = null;
     setCropMode(false);
 
-    pushHistory();
     fitRef.current();
+    pushHistory();
+
   }, [fabricRef, userImageRef, fitRef, pushHistory]);
 
 

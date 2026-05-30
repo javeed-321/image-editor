@@ -22,11 +22,14 @@ type Params = {
 //   User image: never scaled here. It keeps whatever scale it had at load /
 //   crop time. fit() only positions it.
 //
-//   Canvas: hugs the user image plus `padding` on every side.
+//   Canvas: hugs the user image plus `padding` on every side — exactly P
+//   pixels on all four sides.
 //
-//   Background image (if any): stretched to fill the whole canvas. Shows
-//   through the padding margin around the user image and through any
-//   rounded-corner cut-outs.
+//   Background image (if any): covers the whole canvas with a single
+//   uniform scale (Math.max), so aspect ratio is preserved and there's no
+//   X/Y distortion. The bg "breathes" slightly on padding changes — that's
+//   intentional: it's the price of keeping padding uniform on all sides
+//   when canvas aspect = image aspect.
 //
 // After sizing, the canvas is zoomed so it fits the wrap on any screen.
 export function useCanvasFit({
@@ -53,8 +56,9 @@ export function useCanvasFit({
       const userImg = userImageRef.current;
       if (!c || !userImg || !(c as unknown as { lowerCanvasEl?: unknown }).lowerCanvasEl) return;
 
-      // Canvas always hugs the user image plus padding. User image stays at
-      // its current scale — we only move it to the new center.
+      // Canvas hugs the user image plus padding on every side. User image
+      // keeps whatever scale it had at load / crop time — fit() only moves
+      // it to the new center.
       const bounds = userImg.getBoundingRect();
       const canvasW = bounds.width + 2 * padding;
       const canvasH = bounds.height + 2 * padding;
@@ -62,17 +66,22 @@ export function useCanvasFit({
       userImg.set({ left: canvasW / 2, top: canvasH / 2 });
       userImg.setCoords();
 
-      // Background fills the whole canvas. It shows through the padding
-      // margin around the user image, and through rounded-corner cut-outs.
+      // Background covers the whole canvas while preserving aspect ratio —
+      // padding changes never distort it; oversize edges crop. Shows through
+      // the padding margin and through rounded-corner cut-outs.
       const bg = c.backgroundImage;
       if (bg && typeof bg !== "string") {
+        const scale = Math.max(
+          canvasW / (bg.width ?? 1),
+          canvasH / (bg.height ?? 1),
+        );
         bg.set({
-          scaleX: canvasW / (bg.width ?? 1),
-          scaleY: canvasH / (bg.height ?? 1),
-          originX: "left",
-          originY: "top",
-          left: 0,
-          top: 0,
+          scaleX: scale,
+          scaleY: scale,
+          originX: "center",
+          originY: "center",
+          left: canvasW / 2,
+          top: canvasH / 2,
         });
       }
 

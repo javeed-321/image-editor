@@ -49,7 +49,7 @@ export default function FabricCanvas() {
   const [debouncedPadding, setDebouncedPadding] = useState<number>(padding);
 
   useEffect(() => {
-    const id = setTimeout(() => setDebouncedPadding(padding), 150);
+    const id = setTimeout(() => setDebouncedPadding(padding), 350);
     return () => clearTimeout(id);
   }, [padding]);
 
@@ -64,7 +64,7 @@ export default function FabricCanvas() {
     useState<number>(cornerRadius);
 
   useEffect(() => {
-    const id = setTimeout(() => setDebouncedCornerRadius(cornerRadius), 150);
+    const id = setTimeout(() => setDebouncedCornerRadius(cornerRadius), 350);
     return () => clearTimeout(id);
   }, [cornerRadius]);
 
@@ -218,12 +218,11 @@ export default function FabricCanvas() {
     hasImage,
     fabricRef,
     userImageRef,
-    fitRef,
     cropMode
   });
 
 
-  useCanvasTool({ tool, color, highlightSize, blurSize, fabricRef, hasImage, cropMode });
+  useCanvasTool({ tool, color, highlightSize, blurSize, fabricRef, hasImage, cropMode, });
 
   useCanvasFit({
     hasImage,
@@ -390,6 +389,7 @@ export default function FabricCanvas() {
   }
 
   const handleTool = (id: Tool) => {
+    if(cropMode) cancelCrop() 
     setTool(id);
     const c = fabricRef.current;
     if (!c) return;
@@ -404,7 +404,7 @@ export default function FabricCanvas() {
     const c = fabricRef.current;
     const userImg = userImageRef.current;
     if (!c || !userImg) return;
-    rotateCanvas(c, userImg, padding, fitRef.current);
+    rotateCanvas(c, userImg, fitRef.current);
     pushHistory();
   };
 
@@ -454,7 +454,12 @@ export default function FabricCanvas() {
         onCancel={cancel}
         onSave={save}
         onRotate={rotate}
-        onCrop={enterCrop}
+        onCrop={()=>{
+          enterCrop();
+          setTool("select");
+        }}
+        onCancelCrop={cancelCrop}
+
         padding={padding}
         bgColor={bgColor}
         bgGallery={bgGallery}
@@ -500,7 +505,7 @@ export default function FabricCanvas() {
         )}
 
         {cropMode && (
-          <div className="fixed bottom-24 right-4 z-30 flex items-center gap-2 rounded-full border border-border bg-card p-1 shadow-md lg:bottom-[100px]">
+          <div className="fixed z-30 bottom-[1000px] right-4   flex items-center gap-2 rounded-full border border-border bg-card p-1 shadow-md lg:bottom-[100px]">
             <button
               type="button"
               onClick={cancelCrop}

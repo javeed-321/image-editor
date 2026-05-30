@@ -32,6 +32,8 @@ type Props = {
   onBgColorChange: (color: string) => void;
   setCornerRadius: (radius: number) => void;
   cornerRadius: number;
+  onCancelCrop: () => void,
+  cropMode?: boolean;
 };
 
 export function BackgroundPopover({
@@ -46,6 +48,8 @@ export function BackgroundPopover({
   onBgColorChange,
   setCornerRadius,
   cornerRadius,
+  onCancelCrop,
+  cropMode
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -64,6 +68,9 @@ export function BackgroundPopover({
       <PopoverTrigger
         className="flex flex-col items-center gap-0.5 rounded-lg px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted aria-expanded:text-primary aria-expanded:font-semibold [&[aria-expanded='true']_svg]:stroke-[2.5]"
         title="Background"
+        onClick={() => { 
+          if(cropMode) onCancelCrop() ;
+        }}
       >
         <Frame className="size-5" />
         <span>Background</span>

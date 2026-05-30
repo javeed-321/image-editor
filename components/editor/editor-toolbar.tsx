@@ -68,7 +68,7 @@ bgActiveIndex: number | null;
 onAddBg: (dataUrl: string) => void;
 onRemoveBg: (index: number) => void;
 onSelectBg: (index: number | null) => void;
-
+onCancelCrop: () => void;
 };
 
 import { DiscardChangesDialog } from "./discard-changes";
@@ -101,7 +101,8 @@ export function EditorToolbar({
   naturalWidth,
   naturalHeight,
   canUndo,
-  canRedo
+  canRedo,
+  onCancelCrop
 }: Props) {
   const [showColors, setShowColors] = useState(false);
   const colorBtnRef = useRef<HTMLDivElement>(null);
@@ -233,6 +234,8 @@ export function EditorToolbar({
             onSelectBg={onSelectBg}
             cornerRadius={cornerRadius}
             setCornerRadius={setCornerRadius}
+            onCancelCrop={onCancelCrop}
+            cropMode={cropMode}
           />
 
           <ToolButton label="Delete" onClick={onDelete}>

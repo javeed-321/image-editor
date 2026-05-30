@@ -25,7 +25,7 @@ export function useCanvasTool({
   useEffect(() => {
     const c = fabricRef.current;
     if (!c) return;
-    if(cropMode) return ;
+    if(cropMode) {c.isDrawingMode = false; return;} ;
 
     if (tool === "pen") {
       c.isDrawingMode = true;

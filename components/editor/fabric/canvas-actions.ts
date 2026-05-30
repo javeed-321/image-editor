@@ -3,20 +3,18 @@ import { toast } from "sonner";
 
 export function rotateCanvas(
   c: fabric.Canvas,
-  userImg: fabric.FabricImage,
-  padding: number,
+  _userImg: fabric.FabricImage,
   fit: () => void,
 ) {
-  const oldBounds = userImg.getBoundingRect();
-  const oldW = oldBounds.width + 2 * padding;
-  const oldH = oldBounds.height + 2 * padding;
+  // Canvas internal dims = display dims / zoom. Independent of padding now.
+  const z = c.getZoom() || 1;
+  const oldW = c.getWidth() / z;
+  const oldH = c.getHeight() / z;
   const oldCx = oldW / 2;
   const oldCy = oldH / 2;
 
-  const newW = oldH;
-  const newH = oldW;
-  const newCx = newW / 2;
-  const newCy = newH / 2;
+  const newCx = oldH / 2;
+  const newCy = oldW / 2;
 
   c.getObjects().forEach((obj) => {
     const dx = (obj.left ?? 0) - oldCx;

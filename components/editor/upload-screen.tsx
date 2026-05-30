@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowUpRight,
   ChevronDown,
@@ -70,6 +70,18 @@ export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
   const [fileError, setFileError] = useState<string | null>(null);
   const [previewHint, setPreviewHint] = useState(false);
   const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+useEffect(() => {
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === "o") {
+      e.preventDefault();
+      fileInputRef.current?.click();
+    }
+  };
+
+  window.addEventListener("keydown", handleKeyDown);
+  return () => window.removeEventListener("keydown", handleKeyDown);
+}, []);
 
   const handlePreviewToolClick = () => {
     setPreviewHint(true);

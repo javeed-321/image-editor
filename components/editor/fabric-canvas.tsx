@@ -43,12 +43,30 @@ export default function FabricCanvas() {
     return v !== null ? Number(v) : 15;
   });
 
+
+  // Live `padding` drives the slider; `debouncedPadding` lags behind so the
+  // expensive canvas re-fit + persistence only run once the user stops dragging.
+  const [debouncedPadding, setDebouncedPadding] = useState<number>(padding);
+
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedPadding(padding), 150);
+    return () => clearTimeout(id);
+  }, [padding]);
+
+
   const [cornerRadius, setCornerRadius] = useState<number>(() => {
     if (typeof window === "undefined") return 15;
     const v = localStorage.getItem(STORAGE.CORNER_RADIUS);
     return v !== null ? Number(v) : 15;
   });
 
+  const [debouncedCornerRadius, setDebouncedCornerRadius] =
+    useState<number>(cornerRadius);
+
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedCornerRadius(cornerRadius), 150);
+    return () => clearTimeout(id);
+  }, [cornerRadius]);
 
   const [imageSrc, setImageSrc] = useState<string | null>(() =>
     typeof window !== "undefined"
@@ -108,39 +126,39 @@ export default function FabricCanvas() {
     else safeSet(STORAGE.BG_ACTIVE_INDEX, String(index));
   };
 
- const handleAddBg = (dataUrl: string) => {
-  // Always add to in-memory gallery — user can use it this session regardless
-  const next = [...bgGallery, dataUrl];
-  setBgGallery(next);
-  handleSelectBg(next.length - 1);
+  const handleAddBg = (dataUrl: string) => {
+    // Always add to in-memory gallery — user can use it this session regardless
+    const next = [...bgGallery, dataUrl];
+    setBgGallery(next);
+    handleSelectBg(next.length - 1);
 
-  // Check 1: single image too big to save by itself
-  const imageSizeBytes = new Blob([dataUrl]).size;
-  const maxSingleBgBytes = 5 * 1024 * 1024; // 5 MB per image
-  if (imageSizeBytes >= maxSingleBgBytes) {
-    const sizeMb = (imageSizeBytes / (1024 * 1024)).toFixed(1);
-    toast.error("Image too large to save", {
-      description: `${sizeMb} MB exceeds the 5 MB per-image limit. This image won't be saved and will be lost on refresh.`,
-      duration: 4000,
+    // Check 1: single image too big to save by itself
+    const imageSizeBytes = new Blob([dataUrl]).size;
+    const maxSingleBgBytes = 5 * 1024 * 1024; // 5 MB per image
+    if (imageSizeBytes >= maxSingleBgBytes) {
+      const sizeMb = (imageSizeBytes / (1024 * 1024)).toFixed(1);
+      toast.error("Image too large to save", {
+        description: `${sizeMb} MB exceeds the 5 MB per-image limit. This image won't be saved and will be lost on refresh.`,
+        duration: 4000,
         closeButton: true,
 
-    });
-    return; // skip save attempt — would fail anyway
-  }
+      });
+      return; // skip save attempt — would fail anyway
+    }
 
-  // Check 2: total gallery size exceeds browser quota
-  const serialized = JSON.stringify(next);
-  const err = safeSet(STORAGE.BG_GALLERY, serialized);
-  if (err) {
-    const totalMb = (new Blob([serialized]).size / (1024 * 1024)).toFixed(1);
-    toast.warning("Gallery storage exceeded", {
-      description: `Gallery total is ${totalMb} MB, which exceeds the browser's storage limit. Some images may not persist on refresh.`,
-      duration: 4000,
+    // Check 2: total gallery size exceeds browser quota
+    const serialized = JSON.stringify(next);
+    const err = safeSet(STORAGE.BG_GALLERY, serialized);
+    if (err) {
+      const totalMb = (new Blob([serialized]).size / (1024 * 1024)).toFixed(1);
+      toast.warning("Gallery storage exceeded", {
+        description: `Gallery total is ${totalMb} MB, which exceeds the browser's storage limit. Some images may not persist on refresh.`,
+        duration: 4000,
         closeButton: true,
 
-    });
-  }
-};
+      });
+    }
+  };
 
 
   const handleRemoveBg = (index: number) => {
@@ -165,16 +183,16 @@ export default function FabricCanvas() {
 
 
   useEffect(() => {
-    safeSet(STORAGE.PADDING, String(padding));
-  }, [padding]);
+    safeSet(STORAGE.PADDING, String(debouncedPadding));
+  }, [debouncedPadding]);
 
   useEffect(() => {
-    safeSet(STORAGE.CORNER_RADIUS, String(cornerRadius));
-  }, [cornerRadius]);
+    safeSet(STORAGE.CORNER_RADIUS, String(debouncedCornerRadius));
+  }, [debouncedCornerRadius]);
 
 
   const { historyRef, historyIdxRef, pushHistory, restore, resetHistory, canUndo, canRedo } =
-    useCanvasHistory(fabricRef,userImageRef,fitRef);
+    useCanvasHistory(fabricRef, userImageRef, fitRef);
 
 
   useCanvasInit({
@@ -196,20 +214,20 @@ export default function FabricCanvas() {
   });
 
   useRoundedCorners({
-    cornerRadius,
+    cornerRadius: debouncedCornerRadius,
     hasImage,
     fabricRef,
     userImageRef,
     fitRef,
     cropMode
   });
- 
 
-  useCanvasTool({ tool, color, highlightSize, blurSize, fabricRef,hasImage, cropMode });
+
+  useCanvasTool({ tool, color, highlightSize, blurSize, fabricRef, hasImage, cropMode });
 
   useCanvasFit({
     hasImage,
-    padding,
+    padding:debouncedPadding,
     bgColor,
     canvasWrapRef,
     fabricRef,
@@ -282,46 +300,46 @@ export default function FabricCanvas() {
   }, [hasImage, fontSize]);
 
 
-// Keyboard shortcuts: undo / redo / save / delete
-useEffect(() => {
-  if (!hasImage) return;
+  // Keyboard shortcuts: undo / redo / save / delete
+  useEffect(() => {
+    if (!hasImage) return;
 
-  const isTyping = () => {
-    const el = document.activeElement as HTMLElement | null;
-    if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable))
-      return true;
-    const active = fabricRef.current?.getActiveObject();
-    return active instanceof fabric.IText && active.isEditing;
-  };
+    const isTyping = () => {
+      const el = document.activeElement as HTMLElement | null;
+      if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.isContentEditable))
+        return true;
+      const active = fabricRef.current?.getActiveObject();
+      return active instanceof fabric.IText && active.isEditing;
+    };
 
-  const onKeyDown = (e: KeyboardEvent) => {
-    const c = fabricRef.current;
-    if (!c || isTyping()) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      const c = fabricRef.current;
+      if (!c || isTyping()) return;
 
-    const mod = e.ctrlKey || e.metaKey;
-    const key = e.key.toLowerCase();
+      const mod = e.ctrlKey || e.metaKey;
+      const key = e.key.toLowerCase();
 
-    // Save / export
-    if (mod && key === "s") { e.preventDefault(); exportCanvas(c, undefined, filename); return; }
+      // Save / export
+      if (mod && key === "s") { e.preventDefault(); exportCanvas(c, undefined, filename); return; }
 
-    // Undo / Redo (exit crop first so stale crop lines never linger)
-    if (mod && key === "z") { e.preventDefault(); if (cropMode) cancelCrop(); restore(e.shiftKey ? 1 : -1); return; }
-    if (mod && key === "y") { e.preventDefault(); if (cropMode) cancelCrop(); restore(1); return; }
+      // Undo / Redo (exit crop first so stale crop lines never linger)
+      if (mod && key === "z") { e.preventDefault(); if (cropMode) cancelCrop(); restore(e.shiftKey ? 1 : -1); return; }
+      if (mod && key === "y") { e.preventDefault(); if (cropMode) cancelCrop(); restore(1); return; }
 
-    // Delete selected (ignore if nothing is selected)
-    if (e.key === "Delete" || e.key === "Backspace") {
-      if (c.getActiveObjects().length === 0) return;
-      e.preventDefault();
-      deleteSelectedObjects(c, userImageRef.current);
-      pushHistory();
-    }
-  };
+      // Delete selected (ignore if nothing is selected)
+      if (e.key === "Delete" || e.key === "Backspace") {
+        if (c.getActiveObjects().length === 0) return;
+        e.preventDefault();
+        deleteSelectedObjects(c, userImageRef.current);
+        pushHistory();
+      }
+    };
 
-  window.addEventListener("keydown", onKeyDown);
-  return () => window.removeEventListener("keydown", onKeyDown);
-}, [hasImage, filename, restore, pushHistory, fabricRef, userImageRef, cropMode, cancelCrop]);
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [hasImage, filename, restore, pushHistory, fabricRef, userImageRef, cropMode, cancelCrop]);
 
-   
+
 
 
   const uploadFromFile = (file: File) => {
@@ -336,12 +354,12 @@ useEffect(() => {
       setImageSrc(dataUrl);
       setFilename(file.name);
 
- if (imageSizeBytes >= maxSingleBgBytes) {
-      const sizeMb = (imageSizeBytes / (1024 * 1024)).toFixed(1);
-      toast.error(
-        `Background image is ${sizeMb} MB (max 5 MB). Large images won't be saved and will be lost on refresh.`,
-         { duration: 6000 });
-    }
+      if (imageSizeBytes >= maxSingleBgBytes) {
+        const sizeMb = (imageSizeBytes / (1024 * 1024)).toFixed(1);
+        toast.error(
+          `Background image is ${sizeMb} MB (max 5 MB). Large images won't be saved and will be lost on refresh.`,
+          { duration: 6000 });
+      }
 
       safeSet(STORAGE.USER_IMAGE, dataUrl);
       safeSet(STORAGE.FILENAME, file.name);
@@ -482,7 +500,7 @@ useEffect(() => {
         )}
 
         {cropMode && (
-    <div className="fixed bottom-24 right-4 z-30 flex items-center gap-2 rounded-full border border-border bg-card p-1 shadow-md lg:bottom-[100px]">
+          <div className="fixed bottom-24 right-4 z-30 flex items-center gap-2 rounded-full border border-border bg-card p-1 shadow-md lg:bottom-[100px]">
             <button
               type="button"
               onClick={cancelCrop}

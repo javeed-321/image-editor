@@ -28,10 +28,30 @@ export function useCanvasBackground({
     fabric.FabricImage.fromURL(bgImageUrl, { crossOrigin: "anonymous" })
       .then((bgImg) => {
         if (cancelled) return;
+
+        // Size bg ONCE to cover the current canvas — never resized after.
+        // Padding changes only affect the user image now, not the bg.
+        const z = c.getZoom() || 1;
+        const canvasW = c.getWidth() / z;
+        const canvasH = c.getHeight() / z;
+        const scale = Math.max(
+          canvasW / (bgImg.width ?? 1),
+          canvasH / (bgImg.height ?? 1),
+        );
+        bgImg.set({
+          scaleX: scale,
+          scaleY: scale,
+          originX: "center",
+          originY: "center",
+          left: canvasW / 2,
+          top: canvasH / 2,
+        });
+
         c.backgroundImage = bgImg;
-        fitRef.current();
+        c.requestRenderAll();
       })
       .catch(() => {});
+
     return () => {
       cancelled = true;
     };

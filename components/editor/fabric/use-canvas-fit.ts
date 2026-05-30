@@ -1,4 +1,4 @@
-import { useEffect, type RefObject } from "react";
+import { useEffect, useRef, type RefObject } from "react";
 import type * as fabric from "fabric";
 
 type Size = { w: number; h: number };
@@ -16,22 +16,7 @@ type Params = {
   setNaturalSize: (updater: (prev: Size) => Size) => void;
 };
 
-// Sizes the canvas and lays out the user image + background, then scales the
-// whole canvas to fit the viewport.
-//
-//   User image: never scaled here. It keeps whatever scale it had at load /
-//   crop time. fit() only positions it.
-//
-//   Canvas: hugs the user image plus `padding` on every side — exactly P
-//   pixels on all four sides.
-//
-//   Background image (if any): covers the whole canvas with a single
-//   uniform scale (Math.max), so aspect ratio is preserved and there's no
-//   X/Y distortion. The bg "breathes" slightly on padding changes — that's
-//   intentional: it's the price of keeping padding uniform on all sides
-//   when canvas aspect = image aspect.
-//
-// After sizing, the canvas is zoomed so it fits the wrap on any screen.
+
 export function useCanvasFit({
   hasImage,
   padding,
@@ -44,40 +29,77 @@ export function useCanvasFit({
   historyIdxRef,
   setNaturalSize,
 }: Params) {
+
+
+  // Canvas is locked at the user image's initial display bounds. Padding
+  // shrinks the image inside this fixed frame; canvas + bg stay constant.
+  // Re-locks when the user image instance changes (initial upload, post-crop).
+  const fixedCanvasRef = useRef<{ w: number; h: number } | null>(null);
+  const initialScaleRef = useRef<number>(1);
+  const lastUserImgRef = useRef<fabric.FabricImage | null>(null);
+
   useEffect(() => {
     if (!hasImage) return;
     const wrap = canvasWrapRef.current;
     if (!wrap) return;
 
     const fit = () => {
-      // Read refs at call time — fitRef.current outlives canvas dispose/
-      // recreate cycles, so a captured closure can point at a disposed canvas.
       const c = fabricRef.current;
       const userImg = userImageRef.current;
       if (!c || !userImg || !(c as unknown as { lowerCanvasEl?: unknown }).lowerCanvasEl) return;
 
-      // Canvas hugs the user image plus padding on every side. User image
-      // keeps whatever scale it had at load / crop time — fit() only moves
-      // it to the new center.
-      const bounds = userImg.getBoundingRect();
-      const canvasW = bounds.width + 2 * padding;
-      const canvasH = bounds.height + 2 * padding;
+      // Re-lock canvas + baseline scale whenever the user image instance
+      // changes (upload, post-crop). Store UNROTATED display dims so the
+      // rotation block below can swap them based on the current angle.
+      if (lastUserImgRef.current !== userImg) {
+        const initScale = userImg.scaleX ?? 1;
+        fixedCanvasRef.current = {
+          w: (userImg.width ?? 0) * initScale,
+          h: (userImg.height ?? 0) * initScale,
+        };
+        initialScaleRef.current = initScale;
+        lastUserImgRef.current = userImg;
+      }
 
-      userImg.set({ left: canvasW / 2, top: canvasH / 2 });
+      const base = fixedCanvasRef.current!;
+      const initialScale = initialScaleRef.current;
+
+      // Current rotation → swap canvas dims so a rotated image still fits.
+      // rotateCanvas() bumps userImg.angle by 90°; we read it here and let
+      // canvas + bg follow. No code change to rotateCanvas needed.
+      const angle = (((userImg.angle ?? 0) % 360) + 360) % 360;
+      const rotated = angle === 90 || angle === 270;
+      const canvasW = rotated ? base.h : base.w;
+      const canvasH = rotated ? base.w : base.h;
+
+      // Shrink the user image proportionally so its visible width drops by
+      // `2 * padding` canvas-pixels. At padding=0, image fills canvas at its
+      // initial scale. Floor at 1% so it can never disappear entirely.
+      const shrink = Math.max(0.01, (canvasW - 2 * padding) / canvasW);
+      const targetScale = initialScale * shrink;
+      userImg.set({
+        scaleX: targetScale,
+        scaleY: targetScale,
+        originX: "center",
+        originY: "center",
+        left: canvasW / 2,
+        top: canvasH / 2,
+      });
       userImg.setCoords();
 
-      // Background covers the whole canvas while preserving aspect ratio —
-      // padding changes never distort it; oversize edges crop. Shows through
-      // the padding margin and through rounded-corner cut-outs.
+      // Bg fills the (possibly rotated) canvas. Sync its angle to the user
+      // image so they rotate together. When rotated, bg.height becomes the
+      // visible width and bg.width becomes the visible height — the cover-
+      // scale formula uses the post-rotation dims.
       const bg = c.backgroundImage;
       if (bg && typeof bg !== "string") {
-        const scale = Math.max(
-          canvasW / (bg.width ?? 1),
-          canvasH / (bg.height ?? 1),
-        );
+        const bgVisW = rotated ? (bg.height ?? 1) : (bg.width ?? 1);
+        const bgVisH = rotated ? (bg.width ?? 1) : (bg.height ?? 1);
+        const bgScale = Math.max(canvasW / bgVisW, canvasH / bgVisH);
         bg.set({
-          scaleX: scale,
-          scaleY: scale,
+          angle,
+          scaleX: bgScale,
+          scaleY: bgScale,
           originX: "center",
           originY: "center",
           left: canvasW / 2,
@@ -87,9 +109,6 @@ export function useCanvasFit({
 
       c.backgroundColor = bgColor;
 
-      // Fit the canvas inside the wrap's inner content box. clientWidth/
-      // Height already exclude borders and scrollbars but include padding,
-      // so subtract the computed padding.
       const cs = window.getComputedStyle(wrap);
       const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
       const padY = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);

@@ -41,7 +41,9 @@ export function useCanvasHistory(fabricRef: RefObject<fabric.Canvas | null>, use
         restoringRef.current = true;
         historyIdxRef.current = nextIndex;
 
-        await canvas.loadFromJSON(history[nextIndex] )
+        // Background is session state (driven by React's bgImageUrl), not part
+        // of the object undo stack. Grab it BEFORE loadFromJSON wipes it, then
+        // reapply so undo only walks object edits.
         const savedBg = canvas.backgroundImage;
         await canvas.loadFromJSON(history[nextIndex]);
         canvas.backgroundImage = savedBg;

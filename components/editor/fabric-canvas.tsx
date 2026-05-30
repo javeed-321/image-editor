@@ -434,10 +434,10 @@ export default function FabricCanvas() {
     // Note: NOT removing STORAGE.BG_GALLERY so the library persists
   };
 
-  const save = (targetW?: number, nameOfFile?: string) => {
+  const save = (opts: { filename?: string } = {}) => {
     const c = fabricRef.current;
     if (!c) return;
-    exportCanvas(c, targetW, nameOfFile);
+    exportCanvas(c, opts.filename);
   };
 
   return (
@@ -471,8 +471,6 @@ export default function FabricCanvas() {
         onBgColorChange={setBgColor}
         setCornerRadius={setCornerRadius}
         cornerRadius={cornerRadius}
-        naturalWidth={naturalSize.w}
-        naturalHeight={naturalSize.h}
         cropMode={cropMode}
         canUndo={canUndo}
         canRedo={canRedo}
@@ -527,13 +525,7 @@ export default function FabricCanvas() {
       <div className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3   px-4 py-3  lg:hidden  bg-[transparent]">
         <DiscardChangesDialog onConfirm={cancel} />
 
-        <SaveMenu
-          onSave={save}
-          filename={filename}
-          naturalWidth={naturalSize.w}
-          naturalHeight={naturalSize.h}
-          menuPlacement="top"
-        />
+        <SaveMenu onSave={save} filename={filename} />
       </div>
     </div>
   );

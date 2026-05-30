@@ -27,6 +27,20 @@ export function rotateCanvas(
     obj.setCoords();
   });
 
+  // Background image isn't in c.getObjects() — rotate it explicitly so it
+  // spins together with the user image and shapes.
+  const bg = c.backgroundImage;
+  if (bg && typeof bg !== "string") {
+    const dx = (bg.left ?? 0) - oldCx;
+    const dy = (bg.top ?? 0) - oldCy;
+    bg.set({
+      left: newCx + -dy,
+      top: newCy + dx,
+      angle: ((bg.angle ?? 0) + 90) % 360,
+    });
+    bg.setCoords();
+  }
+
   fit();
 }
 
@@ -49,22 +63,12 @@ export function deleteSelectedObjects(
 
 
 
-function dataUrlToBlob(dataUrl: string): Blob {
-  const [head, b64] = dataUrl.split(",");
-  const mime = head.match(/:(.*?);/)?.[1] ?? "image/png";
-  const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return new Blob([bytes], { type: mime });
-}
 
-export async function exportCanvas(
-  c: fabric.Canvas,
-  targetW?: number,
-  fileName?: string,
-) {
-  const z = c.getZoom() || 1;
-  const multiplier = targetW && targetW > 0 ? targetW / c.getWidth() : 1 / z;
+
+export function exportCanvas(c: fabric.Canvas, fileName?: string) {
+  // 1/zoom undoes the on-screen zoom so we render at the canvas's natural
+  // pixel size. multiplier = 1 here means "1:1" — no upscaling = no pixelation.
+  const multiplier = 1 / (c.getZoom() || 1);
 
   let dataUrl: string;
   try {
@@ -76,49 +80,9 @@ export async function exportCanvas(
     return;
   }
 
-  const base = (fileName || "edited").replace(/\.(png|jpe?g|gif|webp)$/i, "");
-  const name = `${base}.png`;
-  const blob = dataUrlToBlob(dataUrl);
-
-  // Chromium (Chrome/Edge/Opera): native "Save As" dialog so the user picks
-  // the folder. `startIn: "desktop"` opens the dialog on the Desktop.
-  const w = window as unknown as {
-    showSaveFilePicker?: (opts: {
-      suggestedName?: string;
-      startIn?: string;
-      types?: { description: string; accept: Record<string, string[]> }[];
-    }) => Promise<{
-      createWritable: () => Promise<{
-        write: (data: Blob) => Promise<void>;
-        close: () => Promise<void>;
-      }>;
-    }>;
-  };
-
-  if (typeof w.showSaveFilePicker === "function") {
-    try {
-      const handle = await w.showSaveFilePicker({
-        suggestedName: name,
-        startIn: "downloads",
-        types: [{ description: "PNG image", accept: { "image/png": [".png"] } }],
-      });
-      const writable = await handle.createWritable();
-      await writable.write(blob);
-      await writable.close();
-      return;
-    } catch (err) {
-      // User pressed Cancel in the dialog — stop silently.
-      if (err instanceof DOMException && err.name === "AbortError") return;
-      // Any other failure: fall through to the plain download below.
-    }
-  }
-
-  // Fallback (Firefox/Safari, or non-secure context): regular download.
-  // Whether a location prompt appears depends on the browser's settings.
-  const url = URL.createObjectURL(blob);
+  const name = `${(fileName || "edited").replace(/\.\w+$/, "")}.png`;
   const a = document.createElement("a");
-  a.href = url;
+  a.href = dataUrl;
   a.download = name;
   a.click();
-  URL.revokeObjectURL(url);
 }

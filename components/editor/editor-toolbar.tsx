@@ -49,7 +49,7 @@ type Props = {
   onColorChange: (color: string) => void;
   onDelete: () => void;
   onCancel: () => void;
-  onSave: (targetW?: number, filename?: string) => void;
+  onSave: (opts: { filename?: string }) => void;
   onRotate: () => void;
   onCrop: () => void;
   padding: number;
@@ -59,8 +59,6 @@ type Props = {
   setCornerRadius: (radius: number) => void;
   cornerRadius: number;
   cropMode?: boolean;
-  naturalWidth: number;
-  naturalHeight: number;
   canUndo: boolean;
 canRedo: boolean;
 bgGallery: string[];
@@ -98,8 +96,6 @@ export function EditorToolbar({
   setCornerRadius,
   cornerRadius,
   cropMode = false,
-  naturalWidth,
-  naturalHeight,
   canUndo,
   canRedo,
   onCancelCrop
@@ -247,12 +243,7 @@ export function EditorToolbar({
       <div className="hidden items-center gap-3 md:hidden lg:flex">
         <DiscardChangesDialog onConfirm={onCancel} />
 
-        <SaveMenu
-          onSave={onSave}
-          filename={filename}
-          naturalWidth={naturalWidth}
-          naturalHeight={naturalHeight}
-        />
+        <SaveMenu onSave={onSave} filename={filename} />
       </div>
     </div>
   );

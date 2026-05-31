@@ -190,7 +190,7 @@ export function BackgroundPopover({
                     <button
                       type="button"
                       onClick={() => onRemoveBg(i)}
-                      className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-background/80 text-muted-foreground shadow-md ring-1 ring-border backdrop-blur-sm opacity-0 transition-all group-hover:opacity-100 hover:bg-foreground text-background hover:ring-0"
+className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-background/80 text-muted-foreground shadow-md ring-1 ring-border backdrop-blur-sm opacity-100 transition-all md:opacity-0 md:group-hover:opacity-100 hover:bg-foreground text-background hover:ring-0"
                       title="Remove"
                     >
                       <X className="size-2.5 stroke-[3]" />

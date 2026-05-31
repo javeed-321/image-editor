@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { SaveMenu } from "./save-menu";
 import { BackgroundPopover } from "./background-dialog";
+import type { ExportOptions } from "./fabric/canvas-actions";
 
 export type Tool = "select" | "pen" | "text" | "blur" | "rect" | "highlight" | "circle" | "arrow";
 
@@ -49,7 +50,7 @@ type Props = {
   onColorChange: (color: string) => void;
   onDelete: () => void;
   onCancel: () => void;
-  onSave: (opts: { filename?: string }) => void;
+  onSave: (opts: ExportOptions) => void;
   onRotate: () => void;
   onCrop: () => void;
   padding: number;
@@ -67,6 +68,9 @@ onAddBg: (dataUrl: string) => void;
 onRemoveBg: (index: number) => void;
 onSelectBg: (index: number | null) => void;
 onCancelCrop: () => void;
+nativeWidth: number;
+nativeHeight: number;
+maxSafeWidth: number;
 };
 
 import { DiscardChangesDialog } from "./discard-changes";
@@ -98,7 +102,10 @@ export function EditorToolbar({
   cropMode = false,
   canUndo,
   canRedo,
-  onCancelCrop
+  onCancelCrop,
+  nativeWidth,
+  nativeHeight,
+  maxSafeWidth,
 }: Props) {
   const [showColors, setShowColors] = useState(false);
   const colorBtnRef = useRef<HTMLDivElement>(null);
@@ -243,7 +250,13 @@ export function EditorToolbar({
       <div className="hidden items-center gap-3 md:hidden lg:flex">
         <DiscardChangesDialog onConfirm={onCancel} />
 
-        <SaveMenu onSave={onSave} filename={filename} />
+        <SaveMenu
+          onSave={onSave}
+          filename={filename}
+          nativeWidth={nativeWidth}
+          nativeHeight={nativeHeight}
+          maxSafeWidth={maxSafeWidth}
+        />
       </div>
     </div>
   );

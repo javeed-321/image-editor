@@ -1,5 +1,5 @@
 "use client";
-import { Spinner } from "@/components/ui/spinner";
+import { cn } from "@/lib/utils";
 
 import { useEffect, useRef, useState } from "react";
 import * as fabric from "fabric";
@@ -18,6 +18,7 @@ import {
   rotateCanvas,
   deleteSelectedObjects,
   exportCanvas,
+  type ExportOptions,
 } from "./fabric/canvas-actions";
 import { useCanvasHistory } from "./fabric/use-canvas-history";
 import { useCanvasInit } from "./fabric/use-canvas-init";
@@ -27,6 +28,8 @@ import { useCanvasBackground } from "./fabric/use-canvas-bg";
 import { useRoundedCorners } from "./fabric/use-rounded-corners";
 import { useCrop } from "./fabric/use-crop";
 import { toast } from "sonner";
+import { Skeleton } from "../ui/skeleton";
+import { Spinner } from "../ui/spinner";
 
 export default function FabricCanvas() {
   const canvasElRef = useRef<HTMLCanvasElement>(null);
@@ -127,35 +130,35 @@ export default function FabricCanvas() {
   };
 
   const handleAddBg = (dataUrl: string) => {
-    // Always add to in-memory gallery — user can use it this session regardless
+    // 1. Always add to in-memory gallery — usable this session regardless.
     const next = [...bgGallery, dataUrl];
     setBgGallery(next);
     handleSelectBg(next.length - 1);
 
-    // Check 1: single image too big to save by itself
+    // 2. Try to persist the gallery. Two failure modes:
+    //    (a) the new image alone is over our per-image budget;
+    //    (b) the combined gallery exceeds browser quota.
     const imageSizeBytes = new Blob([dataUrl]).size;
-    const maxSingleBgBytes = 5 * 1024 * 1024; // 5 MB per image
-    if (imageSizeBytes >= maxSingleBgBytes) {
+    const limitMb = (STORAGE.MAX_PERSISTED_IMAGE_BYTES / (1024 * 1024)).toFixed(0);
+
+    if (imageSizeBytes >= STORAGE.MAX_PERSISTED_IMAGE_BYTES) {
       const sizeMb = (imageSizeBytes / (1024 * 1024)).toFixed(1);
-      toast.error("Image too large to save", {
-        description: `${sizeMb} MB exceeds the 5 MB per-image limit. This image won't be saved and will be lost on refresh.`,
+      toast.warning("Background won't survive refresh", {
+        description: `${sizeMb} MB exceeds the ${limitMb} MB per-image budget. Use it now or replace with a smaller file.`,
         duration: 4000,
         closeButton: true,
-
       });
-      return; // skip save attempt — would fail anyway
+      return;
     }
 
-    // Check 2: total gallery size exceeds browser quota
     const serialized = JSON.stringify(next);
     const err = safeSet(STORAGE.BG_GALLERY, serialized);
     if (err) {
       const totalMb = (new Blob([serialized]).size / (1024 * 1024)).toFixed(1);
-      toast.warning("Gallery storage exceeded", {
-        description: `Gallery total is ${totalMb} MB, which exceeds the browser's storage limit. Some images may not persist on refresh.`,
+      toast.warning("Background gallery won't survive refresh", {
+        description: `Gallery is ${totalMb} MB, over browser storage budget. Newer items may not persist.`,
         duration: 4000,
         closeButton: true,
-
       });
     }
   };
@@ -319,7 +322,7 @@ export default function FabricCanvas() {
       const key = e.key.toLowerCase();
 
       // Save / export
-      if (mod && key === "s") { e.preventDefault(); exportCanvas(c, undefined, filename); return; }
+      if (mod && key === "s") { e.preventDefault(); exportCanvas(c, { filename }); return; }
 
       // Undo / Redo (exit crop first so stale crop lines never linger)
       if (mod && key === "z") { e.preventDefault(); if (cropMode) cancelCrop(); restore(e.shiftKey ? 1 : -1); return; }
@@ -347,22 +350,31 @@ export default function FabricCanvas() {
     const reader = new FileReader();
     reader.onload = () => {
       const dataUrl = reader.result as string;
-      const imageSizeBytes = new Blob([dataUrl]).size;
-      const maxSingleBgBytes = 5 * 1024 * 1024; // 5 MB per image (adjust as needed)
 
+      // 1. Always let the user edit, regardless of size.
       setImageSrc(dataUrl);
       setFilename(file.name);
-
-      if (imageSizeBytes >= maxSingleBgBytes) {
-        const sizeMb = (imageSizeBytes / (1024 * 1024)).toFixed(1);
-        toast.error(
-          `Background image is ${sizeMb} MB (max 5 MB). Large images won't be saved and will be lost on refresh.`,
-          { duration: 6000 });
-      }
-
-      safeSet(STORAGE.USER_IMAGE, dataUrl);
       safeSet(STORAGE.FILENAME, file.name);
-      setLoading(false);
+
+      // 2. Try to persist the image so it survives a refresh.
+      //    Two ways this can fail:
+      //      (a) image larger than our per-image budget (we skip the
+      //          write — it would fail anyway and may evict other keys);
+      //      (b) browser quota exhausted across all keys.
+      //    Either way, warn the user so they know to save before closing.
+      const imageSizeBytes = new Blob([dataUrl]).size;
+      const tooLarge = imageSizeBytes >= STORAGE.MAX_PERSISTED_IMAGE_BYTES;
+      const err = tooLarge ? null : safeSet(STORAGE.USER_IMAGE, dataUrl);
+
+      if (tooLarge || err) {
+        const sizeMb = (imageSizeBytes / (1024 * 1024)).toFixed(1);
+        const limitMb = (STORAGE.MAX_PERSISTED_IMAGE_BYTES / (1024 * 1024)).toFixed(0);
+        toast.warning("Image won't survive refresh", {
+          description: `${sizeMb} MB exceeds the ${limitMb} MB browser-storage budget. Save your work before closing the tab.`,
+          duration: 6000,
+          closeButton: true,
+        });
+      }
     };
     reader.onerror = () => setLoading(false);
 
@@ -376,7 +388,7 @@ export default function FabricCanvas() {
     setFilename(name);
     safeSet(STORAGE.USER_IMAGE, url);
     safeSet(STORAGE.FILENAME, name);
-    setLoading(false);
+    // setLoading(false);
   };
 
   if (!imageSrc) {
@@ -434,11 +446,18 @@ export default function FabricCanvas() {
     // Note: NOT removing STORAGE.BG_GALLERY so the library persists
   };
 
-  const save = (opts: { filename?: string } = {}) => {
+  const save = (opts: ExportOptions = {}) => {
     const c = fabricRef.current;
     if (!c) return;
-    exportCanvas(c, opts.filename);
+    exportCanvas(c, opts);
   };
+
+  // Cap export at the user image's source resolution — beyond this Fabric
+  // would upscale and the image would pixelate. Shapes/text scale freely.
+  const imgScaleX = userImageRef.current?.scaleX ?? 1;
+  const maxSafeWidth = Math.round(
+    naturalSize.w / Math.max(imgScaleX, 0.0001),
+  );
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -474,6 +493,9 @@ export default function FabricCanvas() {
         cropMode={cropMode}
         canUndo={canUndo}
         canRedo={canRedo}
+        nativeWidth={naturalSize.w}
+        nativeHeight={naturalSize.h}
+        maxSafeWidth={maxSafeWidth}
       />
       <SecondaryToolbar
         tool={tool}
@@ -490,17 +512,23 @@ export default function FabricCanvas() {
         ref={canvasWrapRef}
         className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-muted/30 px-2 py-4 pb-20 sm:px-4 sm:py-6 md:pb-6"
       >
-        <div className="overflow-hidden rounded-lg border border-border bg-white shadow-sm">
+              <div
+          className={cn(
+            "overflow-hidden rounded-lg border border-border bg-white shadow-sm transition-opacity duration-300 ease-out",
+            loading ? "opacity-0" : "opacity-100",
+          )}
+        >
           <canvas ref={canvasElRef} />
         </div>
 
         {loading && (
-          <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-            <div className="flex flex-col items-center gap-3 text-sm text-muted-foreground">
-              <Spinner className="size-8 text-primary" />
-            </div>
+          <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center px-4 py-6 sm:px-8 sm:py-10">
+    <Spinner className="size-8 text-primary" />
           </div>
         )}
+
+
+    
 
         {cropMode && (
           <div className="fixed z-30 bottom-[1000px] right-4   flex items-center gap-2 rounded-full border border-border bg-card p-1 shadow-md lg:bottom-[100px]">
@@ -525,7 +553,13 @@ export default function FabricCanvas() {
       <div className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3   px-4 py-3  lg:hidden  bg-[transparent]">
         <DiscardChangesDialog onConfirm={cancel} />
 
-        <SaveMenu onSave={save} filename={filename} />
+        <SaveMenu
+          onSave={save}
+          filename={filename}
+          nativeWidth={naturalSize.w}
+          nativeHeight={naturalSize.h}
+          maxSafeWidth={maxSafeWidth}
+        />
       </div>
     </div>
   );

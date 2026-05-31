@@ -65,14 +65,35 @@ export function deleteSelectedObjects(
 
 
 
-export function exportCanvas(c: fabric.Canvas, fileName?: string) {
-  // 1/zoom undoes the on-screen zoom so we render at the canvas's natural
-  // pixel size. multiplier = 1 here means "1:1" — no upscaling = no pixelation.
-  const multiplier = 1 / (c.getZoom() || 1);
+export type ExportFormat = "png" | "jpg" | "jpeg";
+
+export type ExportOptions = {
+  filename?: string;
+  format?: ExportFormat;
+  /** Output width in pixels. Defaults to canvas native (no upscale, no pixelation). */
+  targetWidth?: number;
+  /** JPEG only. true ≈ 0.6 quality, false ≈ 0.92 quality. Ignored for PNG. */
+  compress?: boolean;
+};
+
+export function exportCanvas(c: fabric.Canvas, opts: ExportOptions = {}) {
+  const { filename, format = "png", targetWidth, compress = false } = opts;
+
+  // c.getWidth() returns the on-screen (CSS-px) width of the canvas element.
+  // toDataURL output width = c.getWidth() × multiplier. To produce a specific
+  // pixel width, divide. Defaulting to 1/zoom matches the old behaviour
+  // (render at the natural unzoomed size — no upscaling, no pixelation).
+  const zoom = c.getZoom() || 1;
+  const displayW = c.getWidth();
+  const multiplier = targetWidth ? targetWidth / displayW : 1 / zoom;
+
+  const isJpeg = format === "jpg" || format === "jpeg";
+  const fabricFormat = isJpeg ? "jpeg" : "png";
+  const quality = isJpeg ? (compress ? 0.6 : 0.92) : 1;
 
   let dataUrl: string;
   try {
-    dataUrl = c.toDataURL({ format: "png", multiplier });
+    dataUrl = c.toDataURL({ format: fabricFormat, multiplier, quality });
   } catch {
     toast.error("Couldn't export image", {
       description: "The image source blocks exporting (CORS). Try uploading the file directly.",
@@ -80,7 +101,8 @@ export function exportCanvas(c: fabric.Canvas, fileName?: string) {
     return;
   }
 
-  const name = `${(fileName || "edited").replace(/\.\w+$/, "")}.png`;
+  const ext = isJpeg ? (format === "jpeg" ? "jpeg" : "jpg") : "png";
+  const name = `${(filename || "edited").replace(/\.\w+$/, "")}.${ext}`;
   const a = document.createElement("a");
   a.href = dataUrl;
   a.download = name;

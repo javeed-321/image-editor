@@ -58,11 +58,12 @@ export function useCanvasInit({
         c.sendObjectToBack(img);
         c.setDimensions({ width: w * scale, height: h * scale });
         c.requestRenderAll();
-        setLoading(false);
+        // setLoading(false);
         setHasImage(true);
 
         requestAnimationFrame(() => {
           fitRef.current();
+          setLoading(false);
         });
       } catch {
         toast.error("Couldn't load that image", { description: "It may have moved or blocks loading." });
@@ -70,9 +71,9 @@ export function useCanvasInit({
         localStorage.removeItem(STORAGE.USER_IMAGE);
       }
 
-      finally {
-        setLoading(false);
-      }
+      // finally {
+        // setLoading(false);
+      // }
     };
     loadImage();
 

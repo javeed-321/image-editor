@@ -1,4 +1,4 @@
-import { useEffect, useRef, type RefObject } from "react";
+import { useCallback, useEffect, useRef, type RefObject } from "react";
 import type * as fabric from "fabric";
 
 type Size = { w: number; h: number };
@@ -72,10 +72,15 @@ export function useCanvasFit({
       const canvasW = rotated ? base.h : base.w;
       const canvasH = rotated ? base.w : base.h;
 
-      // Shrink the user image proportionally so its visible width drops by
-      // `2 * padding` canvas-pixels. At padding=0, image fills canvas at its
-      // initial scale. Floor at 1% so it can never disappear entirely.
-      const shrink = Math.max(0.01, (canvasW - 2 * padding) / canvasW);
+      // Shrink the user image uniformly so the SHORTER canvas side gets
+      // exactly `padding` px of margin; the longer side gets proportionally
+      // more. Canvas dims stay fixed at the image's natural size — export
+      // resolution doesn't change with the slider. (Mathematically you can't
+      // have equal pixel padding on all sides without either growing the
+      // canvas or distorting the image.)
+      const shrinkX = (canvasW - 2 * padding) / canvasW;
+      const shrinkY = (canvasH - 2 * padding) / canvasH;
+      const shrink = Math.max(0.01, Math.min(shrinkX, shrinkY));
       const targetScale = initialScale * shrink;
       userImg.set({
         scaleX: targetScale,
@@ -148,4 +153,13 @@ export function useCanvasFit({
     historyIdxRef,
     setNaturalSize,
   ]);
+
+  // Force the next fit() to re-lock canvas dims to the current user image.
+  // Called after crop/resize-like mutations where the image instance stays
+  // the same but its dimensions changed.
+  const relock = useCallback(() => {
+    lastUserImgRef.current = null;
+  }, []);
+
+  return { relock };
 }

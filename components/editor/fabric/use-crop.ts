@@ -6,6 +6,7 @@ type Params = {
   userImageRef: RefObject<fabric.FabricImage | null>;
   fitRef: RefObject<() => void>;
   pushHistory: () => void;
+  relock: () => void;
 };
 
 export function useCrop({
@@ -13,6 +14,7 @@ export function useCrop({
   userImageRef,
   fitRef,
   pushHistory,
+  relock,
 }: Params) {
   const cropRectRef = useRef<fabric.Rect | null>(null);
   const [cropMode, setCropMode] = useState(false);
@@ -25,21 +27,15 @@ export function useCrop({
     c.isDrawingMode = false;
     c.discardActiveObject();
 
-    const z = c.getZoom() || 1;
-    const canvasW = c.getWidth()  / z;
-    const canvasH = c.getHeight() / z;
-
-    // Start the rect covering the WHOLE canvas (image + surrounding bg area).
-    // User can shrink inward as needed; the bg area outside the image is
-    // selectable from the moment crop mode opens.
+    const b = img.getBoundingRect();
     const rect = new fabric.Rect({
-      left:   0,
-      top:    0,
-      width:  canvasW,
-      height: canvasH,
+      left: b.left,
+      top: b.top,
+      width: b.width,
+      height: b.height,
       originX: "left",
       originY: "top",
-      excludeFromExport: true,
+      excludeFromExport: true, // keep the crop rect out of history & saved JSON
       centeredScaling: false,
       centeredRotation: false,
       lockScalingFlip: true,
@@ -59,23 +55,8 @@ export function useCrop({
     c.setActiveObject(rect);
     cropRectRef.current = rect;
     setCropMode(true);
-
-    // Clamp to CANVAS bounds (Option B — crop the whole composition).
-    const clamp = () => {
-      const w = rect.getScaledWidth();
-      const h = rect.getScaledHeight();
-      rect.left = Math.max(0, Math.min(canvasW - w, rect.left ?? 0));
-      rect.top  = Math.max(0, Math.min(canvasH - h, rect.top  ?? 0));
-      const maxW = canvasW - (rect.left ?? 0);
-      const maxH = canvasH - (rect.top  ?? 0);
-      if (w > maxW && rect.width)  rect.scaleX = maxW / rect.width;
-      if (h > maxH && rect.height) rect.scaleY = maxH / rect.height;
-      rect.setCoords();
-    };
-    rect.on("moving",  clamp);
-    rect.on("scaling", clamp);
+    // c.isDrawingMode=true;
   }, [fabricRef, userImageRef, cropMode]);
-
 
   const cancelCrop = useCallback(() => {
     const c = fabricRef.current;
@@ -87,82 +68,72 @@ export function useCrop({
     setCropMode(false);
   }, [fabricRef]);
 
-  const applyCrop = useCallback(async () => {
+  const applyCrop = useCallback(() => {
     const c = fabricRef.current;
     const img = userImageRef.current;
     const rect = cropRectRef.current;
     if (!c || !img || !rect) return;
 
-    const z = c.getZoom() || 1;
+    const cropX0 = img.cropX ?? 0;
+    const cropY0 = img.cropY ?? 0;
+    const W = img.width ?? 0;
+    const H = img.height ?? 0;
+
+    // scene coords -> image-local coords (source pixels, centered at the image center)
+    const inv = fabric.util.invertTransform(img.calcTransformMatrix());
+
+    // crop rect corners in scene space (rect is axis-aligned, origin top-left)
     const left = rect.left ?? 0;
-    const top  = rect.top  ?? 0;
-    const w    = rect.getScaledWidth();
-    const h    = rect.getScaledHeight();
+    const top = rect.top ?? 0;
+    const sw = rect.getScaledWidth();
+    const sh = rect.getScaledHeight();
+    const corners = [
+      new fabric.Point(left, top),
+      new fabric.Point(left + sw, top),
+      new fabric.Point(left + sw, top + sh),
+      new fabric.Point(left, top + sh),
+    ];
 
-    // Temporarily hide the crop overlay AND lift the background image
-    // + background color off the canvas, so the rendered crop contains
-    // ONLY user image + annotations as opaque pixels. Areas with no
-    // object stay TRANSPARENT, letting the re-attached bg show through
-    // after crop. (fit() restores backgroundColor from the bgColor prop.)
-    rect.visible = false;
-    const savedBg = c.backgroundImage;
-    const savedBgColor = c.backgroundColor;
-    c.backgroundImage = undefined;
-    c.backgroundColor = "";
-    c.requestRenderAll();
-
-    let dataUrl: string;
-    try {
-      dataUrl = c.toDataURL({
-        format: "png",
-        multiplier: 1 / z,
-        left:   left * z,
-        top:    top  * z,
-        width:  w    * z,
-        height: h    * z,
-      });
-    } catch {
-      // Tainted canvas (CORS) — restore state and bail.
-      rect.visible = true;
-      c.backgroundImage = savedBg;
-      c.backgroundColor = savedBgColor;
-      c.requestRenderAll();
-      return;
-    }
-
-    const newImg = await fabric.FabricImage.fromURL(dataUrl);
-    if (!fabricRef.current) return; // unmounted mid-async
-
-    // Wipe old objects (image + annotations are now baked into newImg).
-    // Snapshot the array first — c.remove() mutates getObjects() and
-    // forEach would otherwise skip every other element.
-    [...c.getObjects()].forEach((o) => c.remove(o));
-    c.discardActiveObject();
-
-    // Re-attach the background as a separate layer.
-    c.backgroundImage = savedBg;
-
-    newImg.set({
-      selectable: false,
-      evented: false,
-      originX: "center",
-      originY: "center",
+    // map each corner into source-pixel space
+    const pts = corners.map((p) => {
+      const local = fabric.util.transformPoint(p, inv); // centered, source px
+      return { x: cropX0 + local.x + W / 2, y: cropY0 + local.y + H / 2 };
     });
-    (newImg as any).isUserImage = true;
-    c.add(newImg);
-    c.sendObjectToBack(newImg);
 
-    userImageRef.current = newImg;
-    c.setDimensions({ width: newImg.width, height: newImg.height });
+    const minX = Math.min(...pts.map((p) => p.x));
+    const minY = Math.min(...pts.map((p) => p.y));
+    const maxX = Math.max(...pts.map((p) => p.x));
+    const maxY = Math.max(...pts.map((p) => p.y));
 
+    // clamp to the currently visible source region
+    const newCropX = Math.min(Math.max(minX, cropX0), cropX0 + W);
+    const newCropY = Math.min(Math.max(minY, cropY0), cropY0 + H);
+    const newW = Math.min(maxX, cropX0 + W) - newCropX;
+    const newH = Math.min(maxY, cropY0 + H) - newCropY;
+
+    // Reset scale to 1 so the upcoming relock captures the new cropped
+    // dims as the natural canvas size — without this, the cached padded
+    // scale leaks into fixedCanvasRef and the canvas comes out too small.
+    img.set({
+      cropX: newCropX,
+      cropY: newCropY,
+      width: newW,
+      height: newH,
+      scaleX: 1,
+      scaleY: 1,
+    });
+    img.setCoords();
+
+    c.remove(rect);
     cropRectRef.current = null;
     setCropMode(false);
 
-    // fit() detects the new userImg instance, re-locks canvas dims,
-    // and re-scales the (preserved) bg to cover the new canvas.
+    // Force fit() to re-lock canvas dims to the new cropped image size.
+    relock();
     fitRef.current();
     pushHistory();
-  }, [fabricRef, userImageRef, fitRef, pushHistory]);
+
+  }, [fabricRef, userImageRef, fitRef, pushHistory, relock]);
 
 
   return { cropMode, enterCrop, cancelCrop, applyCrop };

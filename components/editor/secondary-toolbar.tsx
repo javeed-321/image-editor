@@ -1,5 +1,6 @@
 "use client";
 
+import { Check, X } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -21,6 +22,9 @@ type Props = {
   onHighlightSizeChange: (n: number) => void;
   blurSize: number;
   onBlurSizeChange: (n: number) => void;
+  cropMode?: boolean;
+  onCancelCrop?: () => void;
+  onApplyCrop?: () => void;
 };
 
 const FONT_FAMILIES = [
@@ -44,7 +48,34 @@ export function SecondaryToolbar({
   onFontFamilyChange,
   blurSize,
   onBlurSizeChange,
+  cropMode = false,
+  onCancelCrop,
+  onApplyCrop,
 }: Props) {
+  // Crop mode takes priority — show Cancel / Apply for the active crop.
+  if (cropMode) {
+    return (
+      <div className="border-b border-border bg-card/50">
+        <div className="mx-auto flex w-full max-w-sm items-center justify-center gap-2 px-4 py-3">
+          <button
+            type="button"
+            onClick={onCancelCrop}
+            className="flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted"
+          >
+            <X className="size-4" /> Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onApplyCrop}
+            className="flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <Check className="size-4" /> Apply
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (tool !== "text" && tool !== "highlight" && tool !== "blur") return null;
 
   return (

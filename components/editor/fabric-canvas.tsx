@@ -3,8 +3,6 @@ import { cn } from "@/lib/utils";
 
 import { useEffect, useRef, useState } from "react";
 import * as fabric from "fabric";
-import { Check, X } from "lucide-react";
-
 import { EditorToolbar, type Tool } from "./editor-toolbar";
 import { SaveMenu } from "./save-menu";
 import { SecondaryToolbar } from "./secondary-toolbar";
@@ -209,11 +207,25 @@ export default function FabricCanvas() {
     setHasImage,
   });
 
+  const { relock } = useCanvasFit({
+    hasImage,
+    padding: debouncedPadding,
+    bgColor,
+    canvasWrapRef,
+    fabricRef,
+    userImageRef,
+    fitRef,
+    historyRef,
+    historyIdxRef,
+    setNaturalSize,
+  });
+
   const { cropMode, enterCrop, cancelCrop, applyCrop } = useCrop({
     fabricRef,
     userImageRef,
     fitRef,
     pushHistory,
+    relock,
   });
 
   useRoundedCorners({
@@ -226,19 +238,6 @@ export default function FabricCanvas() {
 
 
   useCanvasTool({ tool, color, highlightSize, blurSize, fabricRef, hasImage, cropMode, });
-
-  useCanvasFit({
-    hasImage,
-    padding:debouncedPadding,
-    bgColor,
-    canvasWrapRef,
-    fabricRef,
-    userImageRef,
-    fitRef,
-    historyRef,
-    historyIdxRef,
-    setNaturalSize,
-  });
 
   useCanvasBackground({ bgImageUrl, hasImage, fabricRef, fitRef });
 
@@ -507,6 +506,9 @@ export default function FabricCanvas() {
         onFontFamilyChange={handleFontFamilyChange}
         blurSize={blurSize}
         onBlurSizeChange={setBlurSize}
+        cropMode={cropMode}
+        onCancelCrop={cancelCrop}
+        onApplyCrop={applyCrop}
       />
       <div
         ref={canvasWrapRef}
@@ -530,24 +532,6 @@ export default function FabricCanvas() {
 
     
 
-        {cropMode && (
-          <div className="fixed z-30 bottom-[1000px] right-4   flex items-center gap-2 rounded-full border border-border bg-card p-1 shadow-md lg:bottom-[100px]">
-            <button
-              type="button"
-              onClick={cancelCrop}
-              className="flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted"
-            >
-              <X className="size-4" /> Cancel
-            </button>
-            <button
-              type="button"
-              onClick={applyCrop}
-              className="flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-            >
-              <Check className="size-4" /> Apply
-            </button>
-          </div>
-        )}
       </div>
 
       <div className="fixed inset-x-0 bottom-0 z-20 flex items-center justify-between gap-3   px-4 py-3  lg:hidden  bg-[transparent]">

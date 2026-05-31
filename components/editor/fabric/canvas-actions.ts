@@ -74,10 +74,18 @@ export type ExportOptions = {
   targetWidth?: number;
   /** JPEG only. true ≈ 0.6 quality, false ≈ 0.92 quality. Ignored for PNG. */
   compress?: boolean;
+  /** PNG only. Strip canvas backgroundColor so the output has alpha. Ignored for JPEG. */
+  transparent?: boolean;
 };
 
 export function exportCanvas(c: fabric.Canvas, opts: ExportOptions = {}) {
-  const { filename, format = "png", targetWidth, compress = false } = opts;
+  const {
+    filename,
+    format = "png",
+    targetWidth,
+    compress = false,
+    transparent = false,
+  } = opts;
 
   // c.getWidth() returns the on-screen (CSS-px) width of the canvas element.
   // toDataURL output width = c.getWidth() × multiplier. To produce a specific
@@ -91,6 +99,15 @@ export function exportCanvas(c: fabric.Canvas, opts: ExportOptions = {}) {
   const fabricFormat = isJpeg ? "jpeg" : "png";
   const quality = isJpeg ? (compress ? 0.6 : 0.92) : 1;
 
+  // PNG transparency: temporarily drop the canvas backgroundColor so the
+  // exported file carries alpha. Restore after toDataURL so the on-screen
+  // canvas is unchanged. JPEG can't store alpha — skip.
+  const savedBg = c.backgroundColor;
+  const wantTransparent = transparent && !isJpeg;
+  if (wantTransparent) {
+    c.backgroundColor = "";
+  }
+
   let dataUrl: string;
   try {
     dataUrl = c.toDataURL({ format: fabricFormat, multiplier, quality });
@@ -99,6 +116,11 @@ export function exportCanvas(c: fabric.Canvas, opts: ExportOptions = {}) {
       description: "The image source blocks exporting (CORS). Try uploading the file directly.",
     });
     return;
+  } finally {
+    if (wantTransparent) {
+      c.backgroundColor = savedBg;
+      c.requestRenderAll();
+    }
   }
 
   const ext = isJpeg ? (format === "jpeg" ? "jpeg" : "jpg") : "png";

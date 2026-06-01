@@ -104,9 +104,7 @@ export function exportCanvas(c: fabric.Canvas, opts: ExportOptions = {}) {
   // canvas is unchanged. JPEG can't store alpha — skip.
   const savedBg = c.backgroundColor;
   const wantTransparent = transparent && !isJpeg;
-  if (wantTransparent) {
-    c.backgroundColor = "";
-  }
+ 
 
   let dataUrl: string;
   try {

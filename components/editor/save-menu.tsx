@@ -248,7 +248,10 @@ export function SaveMenu({
           </label>
         )}
 
-        <Button className="w-full" onClick={handleDownload}>
+        <Button 
+          className="w-full transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
+
+        onClick={handleDownload}>
           <Download className="size-4" />
           Download
         </Button>

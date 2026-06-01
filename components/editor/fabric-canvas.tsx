@@ -457,6 +457,8 @@ export default function FabricCanvas() {
   const maxSafeWidth = Math.round(
     naturalSize.w / Math.max(imgScaleX, 0.0001),
   );
+  //naturalSize is the canvas native logical width hwich image is fitted into canvas 
+  //scaleX is how much the image is scaled down to fit into canvas, so dividing native width by scaleX gives us the original image width which is the max safe width for export to avoid pixelation. 
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">

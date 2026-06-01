@@ -64,33 +64,36 @@ export function useCanvasFit({
       const base = fixedCanvasRef.current!;
       const initialScale = initialScaleRef.current;
 
-      // Current rotation → swap canvas dims so a rotated image still fits.
+            // Current rotation → swap canvas dims so a rotated image still fits.
       // rotateCanvas() bumps userImg.angle by 90°; we read it here and let
       // canvas + bg follow. No code change to rotateCanvas needed.
       const angle = (((userImg.angle ?? 0) % 360) + 360) % 360;
       const rotated = angle === 90 || angle === 270;
+
+      // Canvas dims stay locked at the image's natural size — export
+      // resolution doesn't change with the slider.
       const canvasW = rotated ? base.h : base.w;
       const canvasH = rotated ? base.w : base.h;
 
-      // Shrink the user image uniformly so the SHORTER canvas side gets
-      // exactly `padding` px of margin; the longer side gets proportionally
-      // more. Canvas dims stay fixed at the image's natural size — export
-      // resolution doesn't change with the slider. (Mathematically you can't
-      // have equal pixel padding on all sides without either growing the
-      // canvas or distorting the image.)
-      const shrinkX = (canvasW - 2 * padding) / canvasW;
-      const shrinkY = (canvasH - 2 * padding) / canvasH;
-      const shrink = Math.max(0.01, Math.min(shrinkX, shrinkY));
-      const targetScale = initialScale * shrink;
+      // Per-axis scale: shrink the image so all four margins are exactly
+      // `padding` px. NOTE: scaleX ≠ scaleY for non-square canvases, so
+      // the image is mildly STRETCHED. Distortion is barely visible at
+      // small padding (~1–2% at padding=15 on a 16:9 image) and grows
+      // with padding. This is the geometric trade-off required when the
+      // canvas size is fixed and all four margins must be equal.
+      const scaleX = initialScale * Math.max(0.01, (canvasW - 2 * padding) / canvasW);
+      const scaleY = initialScale * Math.max(0.01, (canvasH - 2 * padding) / canvasH);
+
       userImg.set({
-        scaleX: targetScale,
-        scaleY: targetScale,
+        scaleX,
+        scaleY,
         originX: "center",
         originY: "center",
         left: canvasW / 2,
         top: canvasH / 2,
       });
       userImg.setCoords();
+
 
       // Bg fills the (possibly rotated) canvas. Sync its angle to the user
       // image so they rotate together. When rotated, bg.height becomes the

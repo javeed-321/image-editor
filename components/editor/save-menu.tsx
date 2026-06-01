@@ -237,15 +237,9 @@ export function SaveMenu({
             Compress (smaller file)
           </label>
         ) : (
-          <label className="flex cursor-pointer select-none items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={transparent}
-              onChange={(e) => setTransparent(e.target.checked)}
-              className="size-4 accent-primary"
-            />
-            Transparent background
-          </label>
+          <>
+          
+          </>
         )}
 
         <Button 

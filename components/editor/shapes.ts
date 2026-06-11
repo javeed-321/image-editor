@@ -9,15 +9,23 @@ export function addText(
   fontItalic = false,
   fontUnderline = false,
 ) {
+  // Scene coords are image-native pixels; the element is CSS-downscaled to
+  // fit the viewport. Multiply by the css/backstore ratio so the text lands
+  // at the canvas center at the slider's on-screen size.
+  const rect = canvas.upperCanvasEl?.getBoundingClientRect();
+  const cssScale = rect?.width ? canvas.getWidth() / rect.width : 1;
   const t = new fabric.IText("Edit me", {
-    left: 60,
-    top: 60,
-    fontSize,
+    originX: "center",
+    originY: "center",
+    left: canvas.getWidth() / 2,
+    top: canvas.getHeight() / 2,
+    fontSize: Math.round(fontSize * cssScale),
     fill: color,
     fontFamily,
     fontWeight: fontBold ? "bold" : "normal",
     fontStyle: fontItalic ? "italic" : "normal",
     underline: fontUnderline,
+    lockScalingFlip: true,   // corner-drag past the opposite edge can no longer mirror it
   });
   canvas.add(t);
   canvas.setActiveObject(t);

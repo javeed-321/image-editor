@@ -31,8 +31,9 @@ export function useCanvasFit({
 }: Params) {
 
 
-  // Canvas is locked at the user image's initial display bounds. Padding
-  // shrinks the image inside this fixed frame; canvas + bg stay constant.
+  // Padding grows the canvas around the image; the image itself always
+  // renders at its initial scale, so its pixels are never resampled or
+  // distorted by the padding slider. Export size changes with padding.
   // Re-locks when the user image instance changes (initial upload, post-crop).
   const fixedCanvasRef = useRef<{ w: number; h: number } | null>(null);
   const initialScaleRef = useRef<number>(1);
@@ -70,23 +71,14 @@ export function useCanvasFit({
       const angle = (((userImg.angle ?? 0) % 360) + 360) % 360;
       const rotated = angle === 90 || angle === 270;
 
-      // Canvas dims stay locked at the image's natural size — export
-      // resolution doesn't change with the slider.
-      const canvasW = rotated ? base.h : base.w;
-      const canvasH = rotated ? base.w : base.h;
-
-      // Per-axis scale: shrink the image so all four margins are exactly
-      // `padding` px. NOTE: scaleX ≠ scaleY for non-square canvases, so
-      // the image is mildly STRETCHED. Distortion is barely visible at
-      // small padding (~1–2% at padding=15 on a 16:9 image) and grows
-      // with padding. This is the geometric trade-off required when the
-      // canvas size is fixed and all four margins must be equal.
-      const scaleX = initialScale * Math.max(0.01, (canvasW - 2 * padding) / canvasW);
-      const scaleY = initialScale * Math.max(0.01, (canvasH - 2 * padding) / canvasH);
+      // Frame = image display bounds + padding on all four sides. The image
+      // keeps its baseline scale on BOTH axes: no shrink, no stretch.
+      const canvasW = (rotated ? base.h : base.w) + 2 * padding;
+      const canvasH = (rotated ? base.w : base.h) + 2 * padding;
 
       userImg.set({
-        scaleX,
-        scaleY,
+        scaleX: initialScale,
+        scaleY: initialScale,
         originX: "center",
         originY: "center",
         left: canvasW / 2,
@@ -122,10 +114,17 @@ export function useCanvasFit({
       const padY = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
       const availW = Math.max(1, wrap.clientWidth - padX);
       const availH = Math.max(1, wrap.clientHeight - padY);
-      const zoom = Math.max(0.05, Math.min(availW / canvasW, availH / canvasH, 1));
+      const s = Math.max(0.05, Math.min(availW / canvasW, availH / canvasH, 1));
 
-      c.setZoom(zoom);
-      c.setDimensions({ width: canvasW * zoom, height: canvasH * zoom });
+      // Backstore stays at full native resolution (also the export size);
+      // only the element is shrunk to fit the viewport, via CSS, where the
+      // browser downscales at high quality. No internal zoom — fabric's
+      // pointer math reads the css/backstore ratio by itself.
+      c.setDimensions({ width: canvasW, height: canvasH }, { backstoreOnly: true });
+      c.setDimensions(
+        { width: `${Math.round(canvasW * s)}px`, height: `${Math.round(canvasH * s)}px` },
+        { cssOnly: true },
+      );
       c.requestRenderAll();
 
       setNaturalSize((prev) =>

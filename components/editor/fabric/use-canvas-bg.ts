@@ -29,8 +29,8 @@ export function useCanvasBackground({
       .then((bgImg) => {
         if (cancelled) return;
 
-        // Size bg ONCE to cover the current canvas — never resized after.
-        // Padding changes only affect the user image now, not the bg.
+        // Initial cover-fit to the current canvas. fit() re-covers it on
+        // every padding/rotation change since the frame size now varies.
         const z = c.getZoom() || 1;
         const canvasW = c.getWidth() / z;
         const canvasH = c.getHeight() / z;

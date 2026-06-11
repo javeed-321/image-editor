@@ -12,6 +12,8 @@ const FabricCanvas = dynamic(() => import("./fabric-canvas"), {
   ),
 });
 
+console.log("Web Application Schema")
+
 export function Editor() {
   return <FabricCanvas />;
 }

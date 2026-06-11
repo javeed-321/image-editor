@@ -279,7 +279,7 @@ export default function FabricCanvas() {
       const active = c.getActiveObject();
       if (!(active instanceof fabric.IText)) return;
       const effective = Math.round(
-        (active.fontSize ?? 22) * (active.scaleX ?? 1),
+        (active.fontSize ?? 34) * (active.scaleX ?? 1),
       );
       setFontSize(effective);
       if (typeof active.fontFamily === "string") {

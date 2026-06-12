@@ -30,6 +30,15 @@ import { toast } from "sonner";
 import { Skeleton } from "../ui/skeleton";
 import { Spinner } from "../ui/spinner";
 
+// Object fontSize lives in canvas px (the backstore is CSS-downscaled to fit
+// the viewport); the font slider works in on-screen px. Everything crossing
+// that boundary must convert by this ratio — reading a canvas-px value into
+// the slider unconverted compounds it on every selection.
+const screenToCanvas = (c: fabric.Canvas) => {
+  const rect = c.upperCanvasEl?.getBoundingClientRect();
+  return rect?.width ? c.getWidth() / rect.width : 1;
+};
+
 export default function FabricCanvas() {
   const canvasElRef = useRef<HTMLCanvasElement>(null);
   const canvasWrapRef = useRef<HTMLDivElement>(null);
@@ -274,8 +283,13 @@ export default function FabricCanvas() {
     const c = fabricRef.current;
     const active = c?.getActiveObject();
     if (c && active instanceof fabric.IText) {
-      // Bake any existing scale into fontSize so visible size matches the slider.
-      active.set({ fontSize: n, scaleX: 1, scaleY: 1 });
+      // Bake any existing scale into fontSize so visible size matches the
+      // slider; ×ratio converts the slider's screen px to canvas px.
+      active.set({
+        fontSize: Math.round(n * screenToCanvas(c)),
+        scaleX: 1,
+        scaleY: 1,
+      });
       active.setCoords();
       c.requestRenderAll();
       pushHistory();
@@ -292,8 +306,10 @@ export default function FabricCanvas() {
     const sync = () => {
       const active = c.getActiveObject();
       if (!(active instanceof fabric.IText)) return;
+      // ÷ratio converts the object's canvas-px size back to the slider's
+      // screen px — the exact inverse of addText/handleFontSizeChange.
       const effective = Math.round(
-        (active.fontSize ?? 34) * (active.scaleX ?? 1),
+        ((active.fontSize ?? 34) * (active.scaleX ?? 1)) / screenToCanvas(c),
       );
       setFontSize(effective);
       if (typeof active.fontFamily === "string") {
@@ -347,6 +363,17 @@ export default function FabricCanvas() {
         e.preventDefault();
         deleteSelectedObjects(c, userImageRef.current);
         pushHistory();
+        return;
+      }
+
+      // Escape: cancel an active crop, else drop the selection and return
+      // to the select tool (also dismisses the floating tool pill). Skipped
+      // while typing in text (isTyping above) — fabric exits editing itself.
+      if (e.key === "Escape") {
+        if (cropMode) { cancelCrop(); return; }
+        c.discardActiveObject();
+        c.requestRenderAll();
+        setTool("select");
       }
     };
 
@@ -529,24 +556,28 @@ export default function FabricCanvas() {
         maxSafeWidth={maxSafeWidth}
         onMeasureSize={measureSize}
       />
-      <SecondaryToolbar
-        tool={tool}
-        fontSize={fontSize}
-        onFontSizeChange={handleFontSizeChange}
-        highlightSize={highlightSize}
-        onHighlightSizeChange={setHighlightSize}
-        fontFamily={fontFamily}
-        onFontFamilyChange={handleFontFamilyChange}
-        blurSize={blurSize}
-        onBlurSizeChange={setBlurSize}
-        cropMode={cropMode}
-        onCancelCrop={cancelCrop}
-        onApplyCrop={applyCrop}
-      />
       <div
         ref={canvasWrapRef}
         className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-muted/30 px-2 py-4 pb-20 sm:px-4 sm:py-6 md:pb-6"
       >
+        {/* Floats over the canvas area (anchored to this relative wrapper)
+            so opening/closing a tool never resizes the wrapper or re-fits
+            the canvas. */}
+        <SecondaryToolbar
+          tool={tool}
+          fontSize={fontSize}
+          onFontSizeChange={handleFontSizeChange}
+          highlightSize={highlightSize}
+          onHighlightSizeChange={setHighlightSize}
+          fontFamily={fontFamily}
+          onFontFamilyChange={handleFontFamilyChange}
+          blurSize={blurSize}
+          onBlurSizeChange={setBlurSize}
+          cropMode={cropMode}
+          onCancelCrop={cancelCrop}
+          onApplyCrop={applyCrop}
+          onClose={() => setTool("select")}
+        />
               <div
           className={cn(
             "overflow-hidden rounded-lg border border-border bg-white shadow-sm transition-opacity duration-300 ease-out",

@@ -25,6 +25,8 @@ type Props = {
   cropMode?: boolean;
   onCancelCrop?: () => void;
   onApplyCrop?: () => void;
+  /** Dismiss the pill (parent switches back to the select tool). */
+  onClose?: () => void;
 };
 
 const FONT_FAMILIES = [
@@ -51,12 +53,13 @@ export function SecondaryToolbar({
   cropMode = false,
   onCancelCrop,
   onApplyCrop,
+  onClose,
 }: Props) {
   // Crop mode takes priority — show Cancel / Apply for the active crop.
   if (cropMode) {
     return (
-      <div className="border-b border-border bg-card/50">
-        <div className="mx-auto flex w-full max-w-sm items-center justify-center gap-2 px-4 py-3">
+      <div className="absolute left-1/2 top-3 z-30 -translate-x-1/2 rounded-full border border-border bg-card/95 shadow-lg backdrop-blur">
+        <div className="flex w-max max-w-[90vw] items-center justify-center gap-2 px-4 py-2">
           <button
             type="button"
             onClick={onCancelCrop}
@@ -79,8 +82,8 @@ export function SecondaryToolbar({
   if (tool !== "text" && tool !== "highlight" && tool !== "blur") return null;
 
   return (
-    <div className="border-b border-border bg-card/50">
-      <div className="mx-auto w-full max-w-sm px-4 py-3">
+    <div className="absolute left-1/2 top-3 z-30 -translate-x-1/2 rounded-full border border-border bg-card/95 shadow-lg backdrop-blur">
+      <div className="flex w-max max-w-[90vw] items-center gap-3 px-5 py-2.5">
         {tool === "text" && (
           <div className="flex items-center gap-4">
             {/* Font family */}
@@ -146,6 +149,17 @@ export function SecondaryToolbar({
             onChange={onBlurSizeChange}
           />
         )}
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            title="Close"
+            className="-mr-2 flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <X className="size-3.5" />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -167,7 +181,9 @@ function SliderField({
   onChange: (n: number) => void;
 }) {
   return (
-    <div className="flex items-center gap-2">
+    // Explicit width: inside the w-max floating pill there's no full-width
+    // parent for flex-1 to fill, so the slider needs its own size.
+    <div className="flex w-80 max-w-full items-center gap-2">
       <Label className="shrink-0">{label}</Label>
       <Slider
         value={[value]}

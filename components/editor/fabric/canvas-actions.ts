@@ -78,26 +78,47 @@ export type ExportOptions = {
   transparent?: boolean;
 };
 
-export function exportCanvas(c: fabric.Canvas, opts: ExportOptions = {}) {
-  const {
-    filename,
-    format = "png",
-    targetWidth,
-    compress = false,
-    transparent = false,
-  } = opts;
-
-  // c.getWidth() returns the on-screen (CSS-px) width of the canvas element.
-  // toDataURL output width = c.getWidth() × multiplier. To produce a specific
-  // pixel width, divide. Defaulting to 1/zoom matches the old behaviour
-  // (render at the natural unzoomed size — no upscaling, no pixelation).
+// One source of truth for the toDataURL params so the size shown in the
+// download menu (measureExportBytes) is byte-identical to the saved file.
+// c.getWidth() is the backstore (internal pixel) width — CSS-only shrinking
+// doesn't change it — and toDataURL output width = c.getWidth() × multiplier,
+// so dividing yields exactly the requested pixel width.
+function exportParams(c: fabric.Canvas, opts: ExportOptions) {
+  const { format = "png", targetWidth, compress = false } = opts;
   const zoom = c.getZoom() || 1;
-  const displayW = c.getWidth();
-  const multiplier = targetWidth ? targetWidth / displayW : 1 / zoom;
-
+  const multiplier = targetWidth ? targetWidth / c.getWidth() : 1 / zoom;
   const isJpeg = format === "jpg" || format === "jpeg";
-  const fabricFormat = isJpeg ? "jpeg" : "png";
-  const quality = isJpeg ? (compress ? 0.6 : 0.92) : 1;
+  return {
+    isJpeg,
+    fabricFormat: isJpeg ? ("jpeg" as const) : ("png" as const),
+    multiplier,
+    quality: isJpeg ? (compress ? 0.6 : 0.92) : 1,
+  };
+}
+
+// Exact byte size the current settings would download: encode the real
+// export and count its base64 payload. Heavier than a heuristic (full-res
+// encode, ~100ms+) — callers should debounce. Null when the canvas is
+// tainted by a CORS image; the download itself would fail the same way.
+export function measureExportBytes(
+  c: fabric.Canvas,
+  opts: ExportOptions = {},
+): number | null {
+  const { fabricFormat, multiplier, quality } = exportParams(c, opts);
+  let dataUrl: string;
+  try {
+    dataUrl = c.toDataURL({ format: fabricFormat, multiplier, quality });
+  } catch {
+    return null;
+  }
+  const payload = dataUrl.slice(dataUrl.indexOf(",") + 1);
+  const padding = payload.endsWith("==") ? 2 : payload.endsWith("=") ? 1 : 0;
+  return Math.floor((payload.length * 3) / 4) - padding;
+}
+
+export function exportCanvas(c: fabric.Canvas, opts: ExportOptions = {}) {
+  const { filename, transparent = false, format = "png" } = opts;
+  const { isJpeg, fabricFormat, multiplier, quality } = exportParams(c, opts);
 
   // PNG transparency: temporarily drop the canvas backgroundColor so the
   // exported file carries alpha. Restore after toDataURL so the on-screen

@@ -21,10 +21,12 @@ export const STORAGE = {
   BG_IMAGE:        "editor.bgImage",
   BG_GALLERY:      "editor.bgGallery",       // JSON array of saved bg data-URLs
   BG_ACTIVE_INDEX: "editor.bgActiveIndex",   // index into BG_GALLERY
+  BG_FIT:          "editor.bgFit",           // "fill" (cover/crop) | "fit" (contain)
   BG_GALLERY_MAX:  3,                        // max background images stored
   FILENAME:        "editor.filename",
   PADDING:         "editor.padding",
   CORNER_RADIUS:   "editor.cornerRadius",
+  BG_COLOR:        "editor.bgColor",
 
   MAX_PERSISTED_IMAGE_BYTES: 4 * 1024 * 1024, // 4 MB — see comment above
 

@@ -30,6 +30,8 @@ type Props = {
   nativeHeight: number;
   /** Hard cap on output width before the user image starts pixelating. */
   maxSafeWidth: number;
+  /** Exact byte size the given settings would download, or null if unknown. */
+  onMeasureSize?: (opts: ExportOptions) => number | null;
 };
 
 // Match the uploaded file's format so a JPG photo round-trips as JPG (≈10×
@@ -66,6 +68,7 @@ export function SaveMenu({
   nativeWidth,
   nativeHeight,
   maxSafeWidth,
+  onMeasureSize,
 }: Props) {
   const [open, setOpen] = useState(false);
   const suggested = suggestFormat(filename);
@@ -87,16 +90,64 @@ export function SaveMenu({
   // Text input is a separate string so the user can type freely without
   // every keystroke clamping mid-edit (e.g. "12" while aiming for "1200").
   const [widthInput, setWidthInput] = useState<string>(String(maxWidth));
+  // Width as last *committed* (slider released / input blurred). The size
+  // measurement keys off this, never the live drag value, so the expensive
+  // full-res encode can't fire mid-drag and stutter the slider.
+  const [committedWidth, setCommittedWidth] = useState<number>(maxWidth);
 
   // When the canvas (image) changes, reset width to the new source ceiling.
   useEffect(() => {
     setWidth(maxWidth);
     setWidthInput(String(maxWidth));
+    setCommittedWidth(maxWidth);
   }, [maxWidth]);
 
   const aspect = nativeWidth > 0 ? nativeHeight / nativeWidth : 1;
   const outH = Math.round(width * aspect);
   const isJpeg = format === "jpg" || format === "jpeg";
+
+  // Exact download size: encode the real export and measure it. Debounced,
+  // and keyed to committedWidth so dragging the slider never encodes.
+  // The result is stored WITH the settings it was measured at, so the UI
+  // can tell "exact for what's selected" from "stale, interpolate instead".
+  const [measured, setMeasured] = useState<{
+    width: number;
+    format: ExportFormat;
+    compress: boolean;
+    bytes: number;
+  } | null>(null);
+  useEffect(() => {
+    if (!open || !onMeasureSize) return;
+    const wantCompress = isJpeg && compress;
+    const id = setTimeout(() => {
+      const bytes = onMeasureSize({
+        format,
+        targetWidth: committedWidth,
+        compress: wantCompress,
+      });
+      if (bytes !== null) {
+        setMeasured({ width: committedWidth, format, compress: wantCompress, bytes });
+      }
+    }, 250);
+    return () => clearTimeout(id);
+  }, [open, format, committedWidth, compress, isJpeg, onMeasureSize]);
+
+  // Size label: exact when we measured these exact settings; while dragging,
+  // scale the last real measurement by pixel count (file size ≈ proportional
+  // to pixels). When format/compress changed, compression ratio is unknown —
+  // any interim number would flash wrong then jump, so say "calculating…"
+  // and change the value once. Byte-per-pixel guess only without a measurer.
+  const settingsMatch =
+    measured !== null &&
+    measured.format === format &&
+    measured.compress === (isJpeg && compress);
+  const sizeLabel = settingsMatch
+    ? measured.width === width
+      ? formatBytes(measured.bytes)
+      : `~${formatBytes((measured.bytes * width * width) / (measured.width * measured.width))}`
+    : onMeasureSize
+      ? "calculating…"
+      : `~${formatBytes(estimateBytes(format, width, outH, isJpeg && compress))}`;
   const atCeiling = width >= maxWidth;
   // Multiplier shown to the user — relative to the canvas's native size.
   // ×1 = "what you see on screen", ×N = N times bigger (clamped at source).
@@ -111,6 +162,7 @@ export function SaveMenu({
     const clamped = Math.max(minWidth, Math.min(maxWidth, n));
     setWidth(clamped);
     setWidthInput(String(clamped));
+    setCommittedWidth(clamped);
   };
 
   const handleSlider = (n: number) => {
@@ -191,7 +243,8 @@ export function SaveMenu({
 
           <div className="flex items-center gap-2">
             <Slider
-              className="flex-1"
+              // Chunkier track for easier grabbing (default is a 4px line).
+              className="flex-1 **:data-[slot=slider-track]:h-2!"
               value={[width]}
               min={minWidth}
               max={maxWidth}
@@ -199,6 +252,10 @@ export function SaveMenu({
               onValueChange={(v) => {
                 const next = Array.isArray(v) ? v[0] : v;
                 if (typeof next === "number") handleSlider(next);
+              }}
+              onValueCommitted={(v) => {
+                const next = Array.isArray(v) ? v[0] : v;
+                if (typeof next === "number") setCommittedWidth(next);
               }}
             />
             <Input
@@ -220,8 +277,7 @@ export function SaveMenu({
           </div>
 
           <p className="text-[11px] text-muted-foreground tabular-nums">
-            {width.toLocaleString()} × {outH.toLocaleString()} px · ~
-            {formatBytes(estimateBytes(format, width, outH, isJpeg && compress))}
+            {width.toLocaleString()} × {outH.toLocaleString()} px · {sizeLabel}
             {atCeiling && " · source quality"}
           </p>
         </div>

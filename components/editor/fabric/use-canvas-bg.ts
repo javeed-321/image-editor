@@ -29,25 +29,12 @@ export function useCanvasBackground({
       .then((bgImg) => {
         if (cancelled) return;
 
-        // Initial cover-fit to the current canvas. fit() re-covers it on
-        // every padding/rotation change since the frame size now varies.
-        const z = c.getZoom() || 1;
-        const canvasW = c.getWidth() / z;
-        const canvasH = c.getHeight() / z;
-        const scale = Math.max(
-          canvasW / (bgImg.width ?? 1),
-          canvasH / (bgImg.height ?? 1),
-        );
-        bgImg.set({
-          scaleX: scale,
-          scaleY: scale,
-          originX: "center",
-          originY: "center",
-          left: canvasW / 2,
-          top: canvasH / 2,
-        });
-
         c.backgroundImage = bgImg;
+        // fit() owns the cover math: uniform scale = max(canvasW/bgW,
+        // canvasH/bgH), centered, overflow cropped — and it syncs the bg
+        // angle to the user image, so a background picked on a rotated
+        // canvas comes in rotated instead of snapping on the next re-fit.
+        fitRef.current();
         c.requestRenderAll();
       })
       .catch(() => {});

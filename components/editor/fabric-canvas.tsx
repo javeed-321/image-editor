@@ -1,7 +1,7 @@
 "use client";
 import { cn } from "@/lib/utils";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import * as fabric from "fabric";
 import { EditorToolbar, type Tool } from "./editor-toolbar";
 import { SaveMenu } from "./save-menu";
@@ -16,11 +16,12 @@ import {
   rotateCanvas,
   deleteSelectedObjects,
   exportCanvas,
+  measureExportBytes,
   type ExportOptions,
 } from "./fabric/canvas-actions";
 import { useCanvasHistory } from "./fabric/use-canvas-history";
 import { useCanvasInit } from "./fabric/use-canvas-init";
-import { useCanvasFit } from "./fabric/use-canvas-fit";
+import { useCanvasFit, type BgFit } from "./fabric/use-canvas-fit";
 import { useCanvasTool } from "./fabric/use-canvas-tool";
 import { useCanvasBackground } from "./fabric/use-canvas-bg";
 import { useRoundedCorners } from "./fabric/use-rounded-corners";
@@ -99,13 +100,26 @@ export default function FabricCanvas() {
   const bgImageUrl =
     bgActiveIndex !== null ? bgGallery[bgActiveIndex] ?? null : null;
 
+  const [bgFit, setBgFit] = useState<BgFit>(() => {
+    if (typeof window === "undefined") return "fill";
+    return localStorage.getItem(STORAGE.BG_FIT) === "fit" ? "fit" : "fill";
+  });
+
+  const handleBgFitChange = (mode: BgFit) => {
+    setBgFit(mode);
+    safeSet(STORAGE.BG_FIT, mode);
+  };
+
 
   const [tool, setTool] = useState<Tool>("select");
   const [color, setColor] = useState<string>("#ef4444");
   const [hasImage, setHasImage] = useState<boolean>(false);
   const [highlightSize, setHighlightSize] = useState<number>(15);
   const [blurSize, setBlurSize] = useState<number>(15);
-  const [bgColor, setBgColor] = useState<string>("#ffffff");
+  const [bgColor, setBgColor] = useState<string>(() => {
+    if (typeof window === "undefined") return "#ffffff";
+    return localStorage.getItem(STORAGE.BG_COLOR) ?? "#ffffff";
+  });
   const [loading, setLoading] = useState(
     () =>
       typeof window !== "undefined" &&
@@ -120,6 +134,17 @@ export default function FabricCanvas() {
   const [fontFamily, setFontFamily] = useState<string>("Arial");
 
 
+
+  // Updates state immediately (canvas repaints live) but debounces the
+  // localStorage write — the custom color picker fires on every drag tick.
+  const bgColorSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleBgColorChange = (color: string) => {
+    setBgColor(color);
+    if (bgColorSaveTimer.current) clearTimeout(bgColorSaveTimer.current);
+    bgColorSaveTimer.current = setTimeout(() => {
+      safeSet(STORAGE.BG_COLOR, color);
+    }, 350);
+  };
 
   const handleSelectBg = (index: number | null) => {
     setBgActiveIndex(index);
@@ -211,6 +236,7 @@ export default function FabricCanvas() {
     hasImage,
     padding: debouncedPadding,
     bgColor,
+    bgFit,
     canvasWrapRef,
     fabricRef,
     userImageRef,
@@ -390,6 +416,14 @@ export default function FabricCanvas() {
     // setLoading(false);
   };
 
+  // Stable identity so SaveMenu's debounced size-measuring effect doesn't
+  // re-fire on every parent re-render. Must stay above the early return —
+  // hooks after a conditional return crash once imageSrc flips.
+  const measureSize = useCallback((opts: ExportOptions) => {
+    const c = fabricRef.current;
+    return c ? measureExportBytes(c, opts) : null;
+  }, []);
+
   if (!imageSrc) {
     return (
       <UploadScreen
@@ -409,6 +443,11 @@ export default function FabricCanvas() {
     else if (id === "circle") addCircle(c, color);
     else if (id === "arrow") addArrow(c, color);
     if (id !== "pen" && id !== "select") pushHistory();
+  };
+
+  const rename = (name: string) => {
+    setFilename(name);
+    safeSet(STORAGE.FILENAME, name);
   };
 
   const rotate = () => {
@@ -440,8 +479,10 @@ export default function FabricCanvas() {
     resetHistory();
     userImageRef.current = null;
     // localStorage.removeItem(STORAGE.BG_ACTIVE_INDEX);
+    if (bgColorSaveTimer.current) clearTimeout(bgColorSaveTimer.current);
     localStorage.removeItem(STORAGE.FILENAME);
     localStorage.removeItem(STORAGE.USER_IMAGE);
+    localStorage.removeItem(STORAGE.BG_COLOR);
     // Note: NOT removing STORAGE.BG_GALLERY so the library persists
   };
 
@@ -464,6 +505,7 @@ export default function FabricCanvas() {
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <EditorToolbar
         filename={filename}
+        onRename={rename}
         tool={tool}
         color={color}
         onTool={handleTool}
@@ -484,11 +526,13 @@ export default function FabricCanvas() {
         bgColor={bgColor}
         bgGallery={bgGallery}
         bgActiveIndex={bgActiveIndex}
+        bgFit={bgFit}
+        onBgFitChange={handleBgFitChange}
         onAddBg={handleAddBg}
         onRemoveBg={handleRemoveBg}
         onSelectBg={handleSelectBg}
         onPaddingChange={setPadding}
-        onBgColorChange={setBgColor}
+        onBgColorChange={handleBgColorChange}
         setCornerRadius={setCornerRadius}
         cornerRadius={cornerRadius}
         cropMode={cropMode}
@@ -497,6 +541,7 @@ export default function FabricCanvas() {
         nativeWidth={naturalSize.w}
         nativeHeight={naturalSize.h}
         maxSafeWidth={maxSafeWidth}
+        onMeasureSize={measureSize}
       />
       <SecondaryToolbar
         tool={tool}
@@ -545,6 +590,7 @@ export default function FabricCanvas() {
           nativeWidth={naturalSize.w}
           nativeHeight={naturalSize.h}
           maxSafeWidth={maxSafeWidth}
+          onMeasureSize={measureSize}
         />
       </div>
     </div>

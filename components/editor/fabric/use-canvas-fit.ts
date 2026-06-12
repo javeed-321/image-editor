@@ -3,10 +3,18 @@ import type * as fabric from "fabric";
 
 type Size = { w: number; h: number };
 
+// How the background image maps onto the canvas:
+// "fill" — cover: scale up until both canvas sides are covered, crop the
+//          overflow (never distorts, never leaves bars).
+// "fit"  — contain: scale until the WHOLE image is visible inside the
+//          canvas; the uncovered sides show the canvas background color.
+export type BgFit = "fill" | "fit";
+
 type Params = {
   hasImage: boolean;
   padding: number;
   bgColor: string;
+  bgFit: BgFit;
   canvasWrapRef: RefObject<HTMLDivElement | null>;
   fabricRef: RefObject<fabric.Canvas | null>;
   userImageRef: RefObject<fabric.FabricImage | null>;
@@ -21,6 +29,7 @@ export function useCanvasFit({
   hasImage,
   padding,
   bgColor,
+  bgFit,
   canvasWrapRef,
   fabricRef,
   userImageRef,
@@ -95,7 +104,11 @@ export function useCanvasFit({
       if (bg && typeof bg !== "string") {
         const bgVisW = rotated ? (bg.height ?? 1) : (bg.width ?? 1);
         const bgVisH = rotated ? (bg.width ?? 1) : (bg.height ?? 1);
-        const bgScale = Math.max(canvasW / bgVisW, canvasH / bgVisH);
+        // max → cover (crop overflow); min → contain (whole image visible).
+        const bgScale =
+          bgFit === "fit"
+            ? Math.min(canvasW / bgVisW, canvasH / bgVisH)
+            : Math.max(canvasW / bgVisW, canvasH / bgVisH);
         bg.set({
           angle,
           scaleX: bgScale,
@@ -147,6 +160,7 @@ export function useCanvasFit({
     hasImage,
     padding,
     bgColor,
+    bgFit,
     canvasWrapRef,
     fabricRef,
     userImageRef,

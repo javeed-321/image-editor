@@ -6,6 +6,7 @@ import { Frame, Upload, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Slider } from "@/components/ui/slider";
 import { cn, STORAGE } from "@/lib/utils";
+import type { BgFit } from "./fabric/use-canvas-fit";
 
 const BG_COLORS = [
   "#ffffff",
@@ -25,6 +26,8 @@ type Props = {
   bgColor: string;
   bgGallery: string[];
   bgActiveIndex: number | null;
+  bgFit: BgFit;
+  onBgFitChange: (mode: BgFit) => void;
   onAddBg: (dataUrl: string) => void;
   onRemoveBg: (index: number) => void;
   onSelectBg: (index: number | null) => void;
@@ -41,6 +44,8 @@ export function BackgroundPopover({
   bgColor,
   bgGallery,
   bgActiveIndex,
+  bgFit,
+  onBgFitChange,
   onAddBg,
   onRemoveBg,
   onSelectBg,
@@ -151,7 +156,31 @@ export function BackgroundPopover({
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium mr-2 mb-3">Background image</label>
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium mr-2 mb-3">Background image</label>
+              <div className="flex rounded-md border border-border p-0.5">
+                {(["fill", "fit"] as const).map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => onBgFitChange(mode)}
+                    className={cn(
+                      "rounded px-2.5 py-0.5 text-xs font-medium capitalize transition-colors",
+                      bgFit === mode
+                        ? "bg-primary text-primary-foreground"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                    title={
+                      mode === "fill"
+                        ? "Cover the canvas; overflowing edges are cropped"
+                        : "Show the whole image; gaps show the background color"
+                    }
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="flex items-center gap-2 mt-2">
               {Array.from({ length: STORAGE.BG_GALLERY_MAX }, (_, i) => {
                 const url = bgGallery[i];

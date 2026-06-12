@@ -11,16 +11,22 @@ import {
   Trash2,
   Type,
   Undo2, Crop, Highlighter, EyeOff,
+    MousePointer2,   // ← add this line
+
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { SaveMenu } from "./save-menu";
+import type { BgFit } from "./fabric/use-canvas-fit";
+import { FilenameEditor } from "./filename-editor";
 import { BackgroundPopover } from "./background-dialog";
 import type { ExportOptions } from "./fabric/canvas-actions";
 
 export type Tool = "select" | "pen" | "text" | "blur" | "rect" | "highlight" | "circle" | "arrow";
 
 const SHAPE_TOOLS = [
+    { id: "select" as const, label: "Select", Icon: MousePointer2 },   // ← add this line
+
   { id: "pen" as const, label: "Pen", Icon: Pen },
   { id: "text" as const, label: "Text", Icon: Type },
   { id: "highlight" as const, label: "Highlight", Icon: Highlighter },
@@ -42,6 +48,7 @@ const COLORS = [
 
 type Props = {
   filename: string;
+  onRename: (name: string) => void;
   tool: Tool;
   color: string;
   onTool: (tool: Tool) => void;
@@ -64,6 +71,8 @@ type Props = {
 canRedo: boolean;
 bgGallery: string[];
 bgActiveIndex: number | null;
+bgFit: BgFit;
+onBgFitChange: (mode: BgFit) => void;
 onAddBg: (dataUrl: string) => void;
 onRemoveBg: (index: number) => void;
 onSelectBg: (index: number | null) => void;
@@ -71,12 +80,14 @@ onCancelCrop: () => void;
 nativeWidth: number;
 nativeHeight: number;
 maxSafeWidth: number;
+onMeasureSize?: (opts: ExportOptions) => number | null;
 };
 
 import { DiscardChangesDialog } from "./discard-changes";
 
 export function EditorToolbar({
   filename,
+  onRename,
   tool,
   color,
   onTool,
@@ -92,6 +103,8 @@ export function EditorToolbar({
   bgColor,
   bgGallery,
   bgActiveIndex,
+  bgFit,
+  onBgFitChange,
   onPaddingChange,
   onBgColorChange,
   onAddBg,
@@ -106,6 +119,7 @@ export function EditorToolbar({
   nativeWidth,
   nativeHeight,
   maxSafeWidth,
+  onMeasureSize,
 }: Props) {
   const [showColors, setShowColors] = useState(false);
   const colorBtnRef = useRef<HTMLDivElement>(null);
@@ -133,10 +147,8 @@ export function EditorToolbar({
 
   return (
     <div className="relative flex items-center gap-3 border-b border-border bg-card px-3 py-2 md:flex-wrap md:gap-4 md:px-4 md:py-3">
-      <div className="hidden min-w-0 items-center gap-1 text-sm font-medium md:flex">
-        <span className="max-w-[220px] truncate" title={filename}>
-          {filename || "Untitled"}
-        </span>
+      <div className="hidden min-w-0 items-center gap-1 md:flex">
+        <FilenameEditor value={filename} onRename={onRename} />
       </div>
       <div className="-mx-3 flex-1 overflow-x-auto scrollbar-hide px-3 md:mx-auto md:flex-none md:overflow-visible md:px-0">
         <div className="inline-flex items-center gap-1 rounded-2xl border border-border bg-background p-1 shadow-lg md:w-auto">
@@ -230,6 +242,8 @@ export function EditorToolbar({
             bgColor={bgColor}
             bgGallery={bgGallery}
             bgActiveIndex={bgActiveIndex}
+            bgFit={bgFit}
+            onBgFitChange={onBgFitChange}
             onPaddingChange={onPaddingChange}
             onBgColorChange={onBgColorChange}
             onAddBg={onAddBg}
@@ -256,6 +270,7 @@ export function EditorToolbar({
           nativeWidth={nativeWidth}
           nativeHeight={nativeHeight}
           maxSafeWidth={maxSafeWidth}
+          onMeasureSize={onMeasureSize}
         />
       </div>
     </div>

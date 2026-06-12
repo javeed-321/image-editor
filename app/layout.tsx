@@ -117,12 +117,13 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      // overflow-hidden must stay OFF the <html> element: Chrome only arms
-      // pull-to-refresh when the root scroller is scrollable. <body> still
-      // clips the app to the viewport, so the layout is unchanged.
+      // overflow-hidden must stay off BOTH <html> and <body>: the viewport
+      // inherits body's overflow when html's is unset, and a hidden viewport
+      // disables mobile pull-to-refresh. The app shell stays viewport-sized
+      // via h-dvh; inner containers (fabric-canvas root) do their own clipping.
       className={`${inter.variable} ${jetbrainsMono.variable} h-dvh antialiased`}
     >
-      <body className="flex h-dvh flex-col overflow-hidden bg-background">
+      <body className="flex h-dvh flex-col bg-background">
         <JsonLd data={organizationSchema} />
         <JsonLd data={websiteSchema} />
         <main className="flex min-h-0 flex-1 flex-col">{children}</main>

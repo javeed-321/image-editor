@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ArrowUpRight,
   Circle as CircleIcon,
@@ -119,6 +119,28 @@ export function EditorToolbar({
   const [showColors, setShowColors] = useState(false);
   const colorBtnRef = useRef<HTMLDivElement>(null);
   const [colorPopupStyle, setColorPopupStyle] = useState<React.CSSProperties>({});
+
+  // Dismiss the color popup on any outside click/tap or Escape — it's a
+  // hand-rolled popup (not the Popover primitive), so it gets no dismiss
+  // behavior for free. The popup div lives inside colorBtnRef's wrapper,
+  // so one contains() check covers both the trigger and the palette.
+  useEffect(() => {
+    if (!showColors) return;
+    const onPointerDown = (e: PointerEvent) => {
+      if (!colorBtnRef.current?.contains(e.target as Node)) {
+        setShowColors(false);
+      }
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowColors(false);
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [showColors]);
 
   const handleToolChange = (newTool: Tool) => {
     onTool(newTool);

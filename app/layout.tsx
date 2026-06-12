@@ -117,7 +117,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${jetbrainsMono.variable} h-dvh overflow-hidden antialiased`}
+      // overflow-hidden must stay OFF the <html> element: Chrome only arms
+      // pull-to-refresh when the root scroller is scrollable. <body> still
+      // clips the app to the viewport, so the layout is unchanged.
+      className={`${inter.variable} ${jetbrainsMono.variable} h-dvh antialiased`}
     >
       <body className="flex h-dvh flex-col overflow-hidden bg-background">
         <JsonLd data={organizationSchema} />

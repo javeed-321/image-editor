@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, X } from "lucide-react";
+import { Check, CrossIcon, Delete, DeleteIcon, Trash, Trash2, X } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -82,12 +82,14 @@ export function SecondaryToolbar({
   if (tool !== "text" && tool !== "highlight" && tool !== "blur") return null;
 
   return (
-    <div className="absolute left-1/2 top-3 z-30 -translate-x-1/2 rounded-full border border-border bg-card/95 shadow-lg backdrop-blur">
-      <div className="flex w-max max-w-[90vw] items-center gap-3 px-5 py-2.5">
+    // Mobile: compact centered card with stacked controls; sm+: one-line
+    // floating pill. Same controls either way.
+    <div className="absolute left-1/2 top-3 z-30 w-max max-w-[calc(100%-1.5rem)] -translate-x-1/2 rounded-2xl border border-border bg-card/95 shadow-lg backdrop-blur sm:rounded-full">
+      <div className="flex items-center gap-3 px-4 py-2.5 sm:max-w-[90vw] sm:px-5">
         {tool === "text" && (
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
             {/* Font family */}
-            <div className="flex items-center gap-2">
+            <div className="flex w-64 items-center gap-2 sm:w-auto">
               <Label className="shrink-0">Font</Label>
               <Select
                 value={fontFamily}
@@ -95,7 +97,7 @@ export function SecondaryToolbar({
                   if (typeof v === "string") onFontFamilyChange(v);
                 }}
               >
-                <SelectTrigger className="h-8 w-40" style={{ fontFamily }}>
+                <SelectTrigger className="h-8 w-full min-w-0 flex-1 sm:w-40 sm:flex-none" style={{ fontFamily }}>
                   <SelectValue placeholder="Font" />
                 </SelectTrigger>
                 <SelectContent>
@@ -110,7 +112,7 @@ export function SecondaryToolbar({
 
 
             {/* Font size */}
-            <div className="flex items-center gap-2 flex-1 min-w-[250px]">
+            <div className="flex w-64 items-center gap-2 sm:w-auto sm:min-w-[250px] sm:flex-1">
               <Label className="shrink-0">Size</Label>
               <Slider
                 value={[fontSize]}
@@ -155,7 +157,7 @@ export function SecondaryToolbar({
             onClick={onClose}
             aria-label="Close"
             title="Close"
-            className="-mr-2 flex size-6 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="-mr-2 mt-1 flex size-6 shrink-0 items-center justify-center self-start rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:mt-0 sm:self-center"
           >
             <X className="size-3.5" />
           </button>
@@ -181,9 +183,9 @@ function SliderField({
   onChange: (n: number) => void;
 }) {
   return (
-    // Explicit width: inside the w-max floating pill there's no full-width
-    // parent for flex-1 to fill, so the slider needs its own size.
-    <div className="flex w-80 max-w-full items-center gap-2">
+    // Explicit width (compact on mobile): inside the w-max floating pill
+    // there's no full-width parent for flex-1 to fill.
+    <div className="flex w-64 items-center gap-2 sm:w-80">
       <Label className="shrink-0">{label}</Label>
       <Slider
         value={[value]}

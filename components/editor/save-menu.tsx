@@ -1,6 +1,6 @@
 "use client";
 
-import { Download } from "lucide-react";
+import { ChevronDown, ChevronLeft, Download, Image as ImageIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,6 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 
@@ -32,6 +31,12 @@ type Props = {
   maxSafeWidth: number;
   /** Exact byte size the given settings would download, or null if unknown. */
   onMeasureSize?: (opts: ExportOptions) => number | null;
+};
+
+const FORMAT_META: Record<ExportFormat, { label: string }> = {
+  png: { label: "PNG" },
+  jpg: { label: "JPG" },
+  jpeg: { label: "JPEG" },
 };
 
 // Match the uploaded file's format so a JPG photo round-trips as JPG (≈10×
@@ -183,128 +188,139 @@ export function SaveMenu({
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/80">
+      <PopoverTrigger className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98]">
         <Download className="size-4" />
         Download
+        <ChevronDown className="size-3.5 opacity-60" />
       </PopoverTrigger>
 
-      <PopoverContent align="end" side="bottom" className="w-80 gap-4 p-4">
-        <div className="flex items-center gap-2 border-b border-border pb-2 font-medium">
-          <Download className="size-4" />
-          Download
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            File type
-          </label>
-          <Select
-            value={format}
-            onValueChange={(v) => {
-              if (typeof v === "string") setFormat(v as ExportFormat);
-            }}
+      <PopoverContent
+        align="end"
+        side="bottom"
+        sideOffset={8}
+        className="w-[340px] gap-0 overflow-hidden rounded-xl p-0"
+      >
+        <div className="flex items-center gap-1.5 border-b border-border-muted px-2.5 py-2">
+          <button
+            type="button"
+            aria-label="Back"
+            onClick={() => setOpen(false)}
+            className="flex size-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
-            <SelectTrigger className="w-full">
-              <SelectValue />
-              {format === suggested && (
-                <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">
-                  Suggested
-                </span>
-              )}
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="png">
-                PNG{suggested === "png" && " · Suggested"}
-              </SelectItem>
-              <SelectItem value="jpg">
-                JPG{suggested === "jpg" && " · Suggested"}
-              </SelectItem>
-              <SelectItem value="jpeg">
-                JPEG{suggested === "jpeg" && " · Suggested"}
-              </SelectItem>
-            </SelectContent>
-          </Select>
-          <p className="text-[11px] text-muted-foreground">
-            {format === "png"
-              ? "PNG keeps every pixel — best for screenshots & graphics."
-              : "JPG is ~10× smaller — best for photos."}
-          </p>
+            <ChevronLeft className="size-5" />
+          </button>
+          <p className="text-sm font-semibold text-heading">Download</p>
         </div>
 
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Size
+        <div className="space-y-4 p-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-medium text-muted-foreground">
+              File type
             </label>
-            <span className="text-xs text-muted-foreground tabular-nums">
-              ×{multiplier.toFixed(2)}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Slider
-              // Chunkier track for easier grabbing (default is a 4px line).
-              className="flex-1 **:data-[slot=slider-track]:h-2!"
-              value={[width]}
-              min={minWidth}
-              max={maxWidth}
-              step={10}
+            <Select
+              value={format}
               onValueChange={(v) => {
-                const next = Array.isArray(v) ? v[0] : v;
-                if (typeof next === "number") handleSlider(next);
+                if (typeof v === "string") setFormat(v as ExportFormat);
               }}
-              onValueCommitted={(v) => {
-                const next = Array.isArray(v) ? v[0] : v;
-                if (typeof next === "number") setCommittedWidth(next);
-              }}
-            />
-            <Input
-              type="number"
-              inputMode="numeric"
-              min={minWidth}
-              max={maxWidth}
-              value={widthInput}
-              onChange={(e) => setWidthInput(e.target.value)}
-              onBlur={(e) => commitWidth(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  commitWidth((e.target as HTMLInputElement).value);
-                }
-              }}
-              className="h-8 w-20 text-right"
-            />
+            >
+              <SelectTrigger className="h-10 w-full rounded-lg">
+                <span className="flex flex-1 items-center gap-2 text-left">
+                  <ImageIcon className="size-4.5 shrink-0 text-muted-foreground" />
+                  <span className="text-sm text-foreground">
+                    {FORMAT_META[format].label}
+                  </span>
+                  {format === suggested && (
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
+                      Suggested
+                    </span>
+                  )}
+                </span>
+              </SelectTrigger>
+              <SelectContent>
+                {(Object.keys(FORMAT_META) as ExportFormat[]).map((f) => (
+                  <SelectItem key={f} value={f} className="py-1.5 pl-2">
+                    <span className="flex items-center gap-2 text-sm">
+                      {FORMAT_META[f].label}
+                      {f === suggested && (
+                        <span className="rounded-full bg-muted px-1.5 py-px text-[10px] font-medium text-muted-foreground">
+                          Suggested
+                        </span>
+                      )}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <p className="text-[11px] text-muted-foreground tabular-nums">
-            {width.toLocaleString()} × {outH.toLocaleString()} px · {sizeLabel}
-            {atCeiling && " · source quality"}
-          </p>
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-muted-foreground tabular-nums">
+              Size ×{multiplier.toFixed(2)}
+            </label>
+
+            <div className="flex items-center gap-3">
+              <Slider
+                // Chunkier track for easier grabbing (default is a 4px line).
+                className="flex-1 **:data-[slot=slider-track]:h-1.5!"
+                value={[width]}
+                min={minWidth}
+                max={maxWidth}
+                step={10}
+                onValueChange={(v) => {
+                  const next = Array.isArray(v) ? v[0] : v;
+                  if (typeof next === "number") handleSlider(next);
+                }}
+                onValueCommitted={(v) => {
+                  const next = Array.isArray(v) ? v[0] : v;
+                  if (typeof next === "number") setCommittedWidth(next);
+                }}
+              />
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={minWidth}
+                max={maxWidth}
+                value={widthInput}
+                onChange={(e) => setWidthInput(e.target.value)}
+                onBlur={(e) => commitWidth(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    commitWidth((e.target as HTMLInputElement).value);
+                  }
+                }}
+                className="h-8 w-20 rounded-lg text-right tabular-nums"
+              />
+            </div>
+
+            <p className="text-xs text-muted-foreground tabular-nums">
+              {width.toLocaleString()} × {outH.toLocaleString()} px ·{" "}
+              {sizeLabel}
+              {atCeiling && " · Source quality"}
+            </p>
+          </div>
+
+          {isJpeg && (
+            <label className="flex cursor-pointer select-none items-center gap-2 text-sm text-foreground">
+              <input
+                type="checkbox"
+                checked={compress}
+                onChange={(e) => setCompress(e.target.checked)}
+                className="size-4 accent-primary"
+              />
+              Compress file (lower quality)
+            </label>
+          )}
         </div>
 
-        {isJpeg ? (
-          <label className="flex cursor-pointer select-none items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={compress}
-              onChange={(e) => setCompress(e.target.checked)}
-              className="size-4 accent-primary"
-            />
-            Compress (smaller file)
-          </label>
-        ) : (
-          <>
-          
-          </>
-        )}
-
-        <Button 
-          className="w-full transition-transform duration-200 hover:scale-[1.02] active:scale-[0.98]"
-
-        onClick={handleDownload}>
-          <Download className="size-4" />
-          Download
-        </Button>
+        <div className="border-t border-border-muted p-4">
+          <Button
+            className="h-10 w-full rounded-lg text-sm font-medium hover:bg-primary/90 active:scale-[0.99]"
+            onClick={handleDownload}
+          >
+            Download
+          </Button>
+        </div>
       </PopoverContent>
     </Popover>
   );

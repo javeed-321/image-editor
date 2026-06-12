@@ -21,7 +21,7 @@ import {
 } from "./fabric/canvas-actions";
 import { useCanvasHistory } from "./fabric/use-canvas-history";
 import { useCanvasInit } from "./fabric/use-canvas-init";
-import { useCanvasFit, type BgFit } from "./fabric/use-canvas-fit";
+import { useCanvasFit } from "./fabric/use-canvas-fit";
 import { useCanvasTool } from "./fabric/use-canvas-tool";
 import { useCanvasBackground } from "./fabric/use-canvas-bg";
 import { useRoundedCorners } from "./fabric/use-rounded-corners";
@@ -99,17 +99,6 @@ export default function FabricCanvas() {
 
   const bgImageUrl =
     bgActiveIndex !== null ? bgGallery[bgActiveIndex] ?? null : null;
-
-  const [bgFit, setBgFit] = useState<BgFit>(() => {
-    if (typeof window === "undefined") return "fill";
-    return localStorage.getItem(STORAGE.BG_FIT) === "fit" ? "fit" : "fill";
-  });
-
-  const handleBgFitChange = (mode: BgFit) => {
-    setBgFit(mode);
-    safeSet(STORAGE.BG_FIT, mode);
-  };
-
 
   const [tool, setTool] = useState<Tool>("select");
   const [color, setColor] = useState<string>("#ef4444");
@@ -236,7 +225,6 @@ export default function FabricCanvas() {
     hasImage,
     padding: debouncedPadding,
     bgColor,
-    bgFit,
     canvasWrapRef,
     fabricRef,
     userImageRef,
@@ -526,8 +514,6 @@ export default function FabricCanvas() {
         bgColor={bgColor}
         bgGallery={bgGallery}
         bgActiveIndex={bgActiveIndex}
-        bgFit={bgFit}
-        onBgFitChange={handleBgFitChange}
         onAddBg={handleAddBg}
         onRemoveBg={handleRemoveBg}
         onSelectBg={handleSelectBg}

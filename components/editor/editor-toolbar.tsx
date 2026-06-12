@@ -17,7 +17,6 @@ import {
 
 import { cn } from "@/lib/utils";
 import { SaveMenu } from "./save-menu";
-import type { BgFit } from "./fabric/use-canvas-fit";
 import { FilenameEditor } from "./filename-editor";
 import { BackgroundPopover } from "./background-dialog";
 import type { ExportOptions } from "./fabric/canvas-actions";
@@ -71,8 +70,6 @@ type Props = {
 canRedo: boolean;
 bgGallery: string[];
 bgActiveIndex: number | null;
-bgFit: BgFit;
-onBgFitChange: (mode: BgFit) => void;
 onAddBg: (dataUrl: string) => void;
 onRemoveBg: (index: number) => void;
 onSelectBg: (index: number | null) => void;
@@ -103,8 +100,6 @@ export function EditorToolbar({
   bgColor,
   bgGallery,
   bgActiveIndex,
-  bgFit,
-  onBgFitChange,
   onPaddingChange,
   onBgColorChange,
   onAddBg,
@@ -242,8 +237,6 @@ export function EditorToolbar({
             bgColor={bgColor}
             bgGallery={bgGallery}
             bgActiveIndex={bgActiveIndex}
-            bgFit={bgFit}
-            onBgFitChange={onBgFitChange}
             onPaddingChange={onPaddingChange}
             onBgColorChange={onBgColorChange}
             onAddBg={onAddBg}

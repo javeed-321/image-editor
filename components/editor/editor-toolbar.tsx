@@ -156,7 +156,7 @@ export function EditorToolbar({
                 active={active}
                 onClick={() => handleToolChange(id)}
               >
-                <Icon className={cn("size-5", active && "stroke-[2.5]")} />
+                <Icon className={cn("size-4 md:size-5", active && "stroke-[2.5]")} />
               </ToolButton>
             );
           })}
@@ -164,7 +164,7 @@ export function EditorToolbar({
           <div ref={colorBtnRef} className="relative">
             <ToolButton label="Color" onClick={toggleColors}>
               <span
-                className="size-5 rounded-full border border-border"
+                className="size-4 md:size-5 rounded-full border border-border"
                 style={{ backgroundColor: color }}
               />
             </ToolButton>
@@ -213,15 +213,15 @@ export function EditorToolbar({
           <Divider />
 
           <ToolButton label="Undo" onClick={onUndo} disabled={!canUndo}>
-            <Undo2 className="size-5" />
+            <Undo2 className="size-4 md:size-5" />
           </ToolButton>
           <ToolButton label="Redo" onClick={onRedo} disabled={!canRedo}>
-            <Redo2 className="size-5" />
+            <Redo2 className="size-4 md:size-5" />
           </ToolButton>
 
           <Divider />
           <ToolButton label="Crop" active={cropMode} onClick={onCrop}>
-            <Crop className={cn("size-5", cropMode && "stroke-[2.5]")} />
+            <Crop className={cn("size-4 md:size-5", cropMode && "stroke-[2.5]")} />
           </ToolButton>
 
           <ToolButton label="Rotate" onClick={onRotate}   
@@ -229,7 +229,7 @@ export function EditorToolbar({
           [&_svg]:duration-300 
           active:[&_svg]:rotate-90"
 >
-            <RotateCw className="size-5 " />
+            <RotateCw className="size-4 md:size-5 " />
           </ToolButton>
 
           <BackgroundPopover
@@ -249,7 +249,7 @@ export function EditorToolbar({
           />
 
           <ToolButton label="Delete" onClick={onDelete}>
-            <Trash2 className="size-5" />
+            <Trash2 className="size-4 md:size-5" />
           </ToolButton>
         </div>
       </div>

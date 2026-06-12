@@ -72,7 +72,7 @@ export function BackgroundPopover({
           if(cropMode) onCancelCrop() ;
         }}
       >
-        <Frame className="size-5" />
+        <Frame className="size-4 md:size-5" />
         <span>Background</span>
       </PopoverTrigger>
 

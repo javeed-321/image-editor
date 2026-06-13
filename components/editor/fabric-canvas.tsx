@@ -38,6 +38,12 @@ const screenToCanvas = (c: fabric.Canvas) => {
   return rect?.width ? c.getWidth() / rect.width : 1;
 };
 
+// On-screen font-size bounds (px). Match the Size slider in secondary-toolbar.
+// Corner-resizing a text bypasses the slider, so the sync effect re-enforces
+// these — both to keep the slider thumb on its track and to cap the text size.
+const MIN_FONT = 8;
+const MAX_FONT = 120;
+
 export default function FabricCanvas() {
   const canvasElRef = useRef<HTMLCanvasElement>(null);
   const canvasWrapRef = useRef<HTMLDivElement>(null);
@@ -307,29 +313,53 @@ export default function FabricCanvas() {
     const c = fabricRef.current;
     if (!c) return;
 
+    // Push the active text's current size/family up to the toolbar. ÷ratio
+    // converts the object's canvas-px size back to the slider's screen px —
+    // the exact inverse of addText/handleFontSizeChange. Display only; never
+    // mutates the object (doing that mid-scale detaches text from its box).
     const sync = () => {
       const active = c.getActiveObject();
       if (!(active instanceof fabric.IText)) return;
-      // ÷ratio converts the object's canvas-px size back to the slider's
-      // screen px — the exact inverse of addText/handleFontSizeChange.
-      const effective = Math.round(
-        ((active.fontSize ?? 34) * (active.scaleX ?? 1)) / screenToCanvas(c),
-      );
-      setFontSize(effective);
+      const ratio = screenToCanvas(c);
+      const raw = Math.round(((active.fontSize ?? 34) * (active.scaleX ?? 1)) / ratio);
+      setFontSize(Math.min(MAX_FONT, Math.max(MIN_FONT, raw)));
       if (typeof active.fontFamily === "string") {
         setFontFamily(active.fontFamily);
       }
     };
 
+    // Cap corner-resizing by clamping the SCALE (not fontSize) so the bounding
+    // box and the glyphs stay in lockstep — the text simply stops growing at
+    // MAX_FONT instead of detaching from its frame. Runs live on every drag.
+    const clampScale = () => {
+      const active = c.getActiveObject();
+      if (!(active instanceof fabric.IText)) return;
+      const base = active.fontSize ?? 34; // canvas-px height at scale 1
+      const ratio = screenToCanvas(c);
+      const maxScale = (MAX_FONT * ratio) / base;
+      const minScale = (MIN_FONT * ratio) / base;
+      const clamp = (v: number) => Math.min(maxScale, Math.max(minScale, v));
+      const sx = clamp(active.scaleX ?? 1);
+      const sy = clamp(active.scaleY ?? 1);
+      if (sx !== active.scaleX || sy !== active.scaleY) {
+        active.set({ scaleX: sx, scaleY: sy });
+      }
+    };
+
+    const onScaling = () => {
+      clampScale();
+      sync();
+    };
+
     c.on("selection:created", sync);
     c.on("selection:updated", sync);
-    c.on("object:scaling", sync);
+    c.on("object:scaling", onScaling);
     c.on("object:modified", sync);
 
     return () => {
       c.off("selection:created", sync);
       c.off("selection:updated", sync);
-      c.off("object:scaling", sync);
+      c.off("object:scaling", onScaling);
       c.off("object:modified", sync);
     };
   }, [hasImage, fontSize]);

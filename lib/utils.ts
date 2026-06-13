@@ -39,7 +39,6 @@ export const safeSet = (key: string, value: string): Error | null => {
     localStorage.setItem(key, value);
     return null;
   } catch (e) {
-    // console.warn(`localStorage failed for ${key}:`, e);
     return e instanceof Error ? e : new Error(String(e));
   }
 };

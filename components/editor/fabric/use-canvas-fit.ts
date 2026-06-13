@@ -14,6 +14,7 @@ type Params = {
   historyRef: RefObject<string[]>;
   historyIdxRef: RefObject<number>;
   setNaturalSize: (updater: (prev: Size) => Size) => void;
+  setImageScale: (updater: (prev: number) => number) => void;
 };
 
 
@@ -28,6 +29,7 @@ export function useCanvasFit({
   historyRef,
   historyIdxRef,
   setNaturalSize,
+  setImageScale,
 }: Params) {
 
 
@@ -133,6 +135,7 @@ export function useCanvasFit({
           ? prev
           : { w: Math.round(canvasW), h: Math.round(canvasH) },
       );
+      setImageScale((prev) => (prev === initialScale ? prev : initialScale));
       if (historyRef.current.length === 0) {
         historyRef.current = [JSON.stringify(c.toObject(["selectable", "evented"]))];
         historyIdxRef.current = 0;
@@ -155,6 +158,7 @@ export function useCanvasFit({
     historyRef,
     historyIdxRef,
     setNaturalSize,
+    setImageScale,
   ]);
 
   // Force the next fit() to re-lock canvas dims to the current user image.

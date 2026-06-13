@@ -68,8 +68,6 @@ export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
   const [urlInput, setUrlInput] = useState("");
   const [urlError, setUrlError] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
-  const [previewHint, setPreviewHint] = useState(false);
-  const hintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
 useEffect(() => {
   const handleKeyDown = (e: KeyboardEvent) => {
@@ -84,13 +82,8 @@ useEffect(() => {
 }, []);
 
   const handlePreviewToolClick = () => {
-    setPreviewHint(true);
-    hintTimerRef.current = setTimeout(() => setPreviewHint(false), 2000);
     toast("Please Upload an Image", {
       position: "top-center",
-      style: {
-
-      }
     });
   };
 

@@ -27,7 +27,6 @@ import { useCanvasBackground } from "./fabric/use-canvas-bg";
 import { useRoundedCorners } from "./fabric/use-rounded-corners";
 import { useCrop } from "./fabric/use-crop";
 import { toast } from "sonner";
-import { Skeleton } from "../ui/skeleton";
 import { Spinner } from "../ui/spinner";
 
 // Object fontSize lives in canvas px (the backstore is CSS-downscaled to fit
@@ -127,6 +126,10 @@ export default function FabricCanvas() {
     w: 0,
     h: 0,
   });
+  // Mirror the user image's display scale into reactive state. Reading
+  // userImageRef.current.scaleX during render is a stale-ref hazard since
+  // React doesn't re-render on ref mutation. fit() keeps this in sync.
+  const [imageScale, setImageScale] = useState(1);
   const [fontSize, setFontSize] = useState<number>(22);
 
   const [fontFamily, setFontFamily] = useState<string>("Arial");
@@ -241,6 +244,7 @@ export default function FabricCanvas() {
     historyRef,
     historyIdxRef,
     setNaturalSize,
+    setImageScale,
   });
 
   const { cropMode, enterCrop, cancelCrop, applyCrop } = useCrop({
@@ -477,7 +481,6 @@ export default function FabricCanvas() {
     const c = fabricRef.current;
     if (!c) return;
     const active = c.getActiveObjects();
-    console.log(active);
     if (active.length === 0) return;
     deleteSelectedObjects(c, userImageRef.current);
     pushHistory();
@@ -489,11 +492,9 @@ export default function FabricCanvas() {
     setTool("pen");
     setHasImage(false);
     setBgColor("#ffffff");
-    // setBgActiveIndex(null);
     // (keep bgGallery — it's the user's saved library across sessions)
     resetHistory();
     userImageRef.current = null;
-    // localStorage.removeItem(STORAGE.BG_ACTIVE_INDEX);
     if (bgColorSaveTimer.current) clearTimeout(bgColorSaveTimer.current);
     localStorage.removeItem(STORAGE.FILENAME);
     localStorage.removeItem(STORAGE.USER_IMAGE);
@@ -509,7 +510,7 @@ export default function FabricCanvas() {
 
   // Cap export at the user image's source resolution — beyond this Fabric
   // would upscale and the image would pixelate. Shapes/text scale freely.
-  const imgScaleX = userImageRef.current?.scaleX ?? 1;
+  const imgScaleX = imageScale;
   const maxSafeWidth = Math.round(
     naturalSize.w / Math.max(imgScaleX, 0.0001),
   );

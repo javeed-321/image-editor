@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, CrossIcon, Delete, DeleteIcon, Trash, Trash2, X } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import {
   Select,

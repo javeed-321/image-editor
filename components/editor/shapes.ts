@@ -1,5 +1,30 @@
   import * as fabric from "fabric";
 
+// Scene coords are image-native pixels; the canvas element is CSS-downscaled
+// to fit the viewport. Multiply on-screen sizes by this ratio so shapes and
+// their handles land at a constant on-screen size on any image resolution.
+export function cssScaleOf(canvas: fabric.Canvas) {
+  const rect = canvas.upperCanvasEl?.getBoundingClientRect();
+  return rect?.width ? canvas.getWidth() / rect.width : 1;
+}
+
+// Selection handles matching the text/crop chrome: white round grips +
+// solid blue border, sized in on-screen px so they stay small & consistent
+// regardless of how far the canvas is zoomed to fit.
+export function handleStyle(cssScale: number) {
+  return {
+    lockScalingFlip: true,
+    cornerStyle: "circle" as const,
+    cornerColor: "#ffffff",
+    cornerStrokeColor: "rgba(0,0,0,0.25)",
+    transparentCorners: false,
+    cornerSize: 12 * cssScale,
+    touchCornerSize: 24 * cssScale,
+    borderColor: "#3b82f6",
+    borderScaleFactor: 2 * cssScale,
+  };
+}
+
 export function addText(
   canvas: fabric.Canvas,
   color: string,
@@ -61,16 +86,21 @@ export function addText(
 }
 
   export function addRect(canvas: fabric.Canvas, color: string) {
+    const s = cssScaleOf(canvas);
     const r = new fabric.Rect({
-      left: 80,
-      top: 80,
-      width: 160,
-      height: 110,
+      originX: "center",
+      originY: "center",
+      left: canvas.getWidth() / 2,
+      top: canvas.getHeight() / 2,
+      width: 200 * s,
+      height: 140 * s,
       fill: "transparent",
       stroke: color,
-      strokeWidth: 3,
-      rx: 4,
-      ry: 4,
+      strokeWidth: 3 * s,
+      strokeUniform: true,
+      rx: 4 * s,
+      ry: 4 * s,
+      ...handleStyle(s),
     });
     canvas.add(r);
     canvas.setActiveObject(r);
@@ -78,13 +108,18 @@ export function addText(
   }
 
   export function addCircle(canvas: fabric.Canvas, color: string) {
+    const s = cssScaleOf(canvas);
     const ci = new fabric.Circle({
-      left: 100,
-      top: 100,
-      radius: 60,
+      originX: "center",
+      originY: "center",
+      left: canvas.getWidth() / 2,
+      top: canvas.getHeight() / 2,
+      radius: 80 * s,
       fill: "transparent",
       stroke: color,
-      strokeWidth: 3,
+      strokeWidth: 3 * s,
+      strokeUniform: true,
+      ...handleStyle(s),
     });
     canvas.add(ci);
     canvas.setActiveObject(ci);
@@ -92,13 +127,15 @@ export function addText(
   }
 
   export function addArrow(canvas: fabric.Canvas, color: string) {
-    const x1 = 80;
-    const y1 = 80;
-    const x2 = 240;
-    const y2 = 160;
+    const s = cssScaleOf(canvas);
+    const len = 200 * s;
+    const x1 = 0;
+    const y1 = 0;
+    const x2 = len;
+    const y2 = len * 0.5;
     const line = new fabric.Line([x1, y1, x2, y2], {
       stroke: color,
-      strokeWidth: 4,
+      strokeWidth: 4 * s,
     });
     const angle = Math.atan2(y2 - y1, x2 - x1);
     const head = new fabric.Triangle({
@@ -106,12 +143,18 @@ export function addText(
       top: y2,
       originX: "center",
       originY: "center",
-      width: 16,
-      height: 20,
+      width: 20 * s,
+      height: 24 * s,
       fill: color,
       angle: (angle * 180) / Math.PI + 90,
     });
-    const g = new fabric.Group([line, head]);
+    const g = new fabric.Group([line, head], {
+      originX: "center",
+      originY: "center",
+      left: canvas.getWidth() / 2,
+      top: canvas.getHeight() / 2,
+      ...handleStyle(s),
+    });
     canvas.add(g);
     canvas.setActiveObject(g);
     canvas.requestRenderAll();

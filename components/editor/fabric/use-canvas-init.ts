@@ -2,6 +2,7 @@ import { useEffect, type RefObject } from "react";
 import * as fabric from "fabric";
 import { STORAGE } from "@/lib/utils";
 import { toast } from "sonner";
+import { cssScaleOf, handleStyle } from "../shapes";
 
 // Allow the image's render cache to hold the full canvas resolution
 // (canvas is capped at 4000×4000 by STORAGE.MAX_W/MAX_H). Default cap is
@@ -72,12 +73,11 @@ export function useCanvasInit({
           originX: "center",
           originY: "center",
         });
-      (img as any).isUserImage = true ;
+      (img as fabric.FabricImage & { isUserImage?: boolean }).isUserImage = true;
         c.add(img);
         c.sendObjectToBack(img);
         c.setDimensions({ width: w * scale, height: h * scale });
         c.requestRenderAll();
-        // setLoading(false);
         setHasImage(true);
 
         requestAnimationFrame(() => {
@@ -86,17 +86,21 @@ export function useCanvasInit({
         });
       } catch {
         toast.error("Couldn't load that image", { description: "It may have moved or blocks loading." });
-        // setImageSrc(null);                 
         localStorage.removeItem(STORAGE.USER_IMAGE);
       }
-
-      // finally {
-        // setLoading(false);
-      // }
     };
     loadImage();
 
-    c.on("path:created", pushHistory);
+    // Pen/Highlight/Blur strokes are Paths Fabric builds for us — give them
+    // the same selection handles as text & the shapes before saving history.
+    c.on("path:created", (e) => {
+      const path = (e as { path?: fabric.Path }).path;
+      if (path) {
+        path.set(handleStyle(cssScaleOf(c)));
+        path.setCoords();
+      }
+      pushHistory();
+    });
     c.on("object:modified", pushHistory);
 
     return () => {

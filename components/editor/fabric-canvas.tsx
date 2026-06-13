@@ -462,6 +462,8 @@ export default function FabricCanvas() {
     else if (id === "circle") addCircle(c, color);
     else if (id === "arrow") addArrow(c, color);
     if (id !== "pen" && id !== "select") pushHistory();
+  if (id === "rect" || id === "circle" || id === "arrow") setTool("select");
+
   };
 
   const rename = (name: string) => {

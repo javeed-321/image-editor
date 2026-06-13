@@ -37,11 +37,12 @@ export function useCanvasInit({
 
     const c = new fabric.Canvas(canvasElRef.current, {
       backgroundColor: "#ffffff",
-      // Backstore is already at the image's native resolution and the
-      // element is CSS-downscaled to fit (see use-canvas-fit). Retina
-      // scaling would multiply that by devicePixelRatio for no extra
-      // detail — the source has no more pixels to give.
-      enableRetinaScaling: false,
+      // Render the backstore at devicePixelRatio. The raster image gains no
+      // detail (the source has no more pixels), but vector text and shapes
+      // are resolution-independent and would otherwise look soft on HiDPI
+      // screens, where the canvas is stretched past its CSS-pixel backstore.
+      // Export is unaffected — toDataURL's multiplier uses the logical width.
+      enableRetinaScaling: true,
     });
     fabricRef.current = c;
 

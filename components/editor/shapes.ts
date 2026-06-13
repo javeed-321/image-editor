@@ -8,6 +8,20 @@ export function cssScaleOf(canvas: fabric.Canvas) {
   return rect?.width ? canvas.getWidth() / rect.width : 1;
 }
 
+// Place a newly added object at the canvas center, nudged a few on-screen
+// px so repeated adds don't stack into one indistinguishable blob. The
+// offset wraps every few items, keeping everything clustered near the
+// middle instead of marching off toward a corner. Counts only user-added
+// objects (the locked background image is evented:false).
+export function centerNudge(canvas: fabric.Canvas, s: number) {
+  const n = canvas.getObjects().filter((o) => o.evented !== false).length;
+  const step = (n % 5) * 12 * s;
+  return {
+    left: canvas.getWidth() / 2 + step,
+    top: canvas.getHeight() / 2 + step,
+  };
+}
+
 // Selection handles matching the text/crop chrome: white round grips +
 // solid blue border, sized in on-screen px so they stay small & consistent
 // regardless of how far the canvas is zoomed to fit.
@@ -34,34 +48,19 @@ export function addText(
   fontItalic = false,
   fontUnderline = false,
 ) {
-  // Clicking Text with a text already selected shouldn't stack a second
-  // copy on top of it — put the cursor in the selected one instead.
-  const active = canvas.getActiveObject();
-  if (active instanceof fabric.IText) {
-    active.enterEditing();
-    active.selectAll();
-    canvas.requestRenderAll();
-    return;
-  }
+
 
   // Scene coords are image-native pixels; the element is CSS-downscaled to
   // fit the viewport. Multiply by the css/backstore ratio so the text lands
   // at the canvas center at the slider's on-screen size.
-  const rect = canvas.upperCanvasEl?.getBoundingClientRect();
-  const cssScale = rect?.width ? canvas.getWidth() / rect.width : 1;
-
-  // Cascade consecutive texts (~24 screen px per step) so a new one never
-  // lands exactly on an earlier one and looks like a duplicate.
-  const existing = canvas
-    .getObjects()
-    .filter((o) => o instanceof fabric.IText).length;
-  const step = (existing % 8) * 24 * cssScale;
+  const cssScale = cssScaleOf(canvas);
+  const { left, top } = centerNudge(canvas, cssScale);
 
   const t = new fabric.IText("Edit me", {
     originX: "center",
     originY: "center",
-    left: canvas.getWidth() / 2 + step,
-    top: canvas.getHeight() / 2 + step,
+    left,
+    top,
     fontSize: Math.round(fontSize * cssScale),
     fill: color,
     fontFamily,
@@ -87,11 +86,12 @@ export function addText(
 
   export function addRect(canvas: fabric.Canvas, color: string) {
     const s = cssScaleOf(canvas);
+    const { left, top } = centerNudge(canvas, s);
     const r = new fabric.Rect({
       originX: "center",
       originY: "center",
-      left: canvas.getWidth() / 2,
-      top: canvas.getHeight() / 2,
+      left,
+      top,
       width: 200 * s,
       height: 140 * s,
       fill: "transparent",
@@ -109,11 +109,12 @@ export function addText(
 
   export function addCircle(canvas: fabric.Canvas, color: string) {
     const s = cssScaleOf(canvas);
+    const { left, top } = centerNudge(canvas, s);
     const ci = new fabric.Circle({
       originX: "center",
       originY: "center",
-      left: canvas.getWidth() / 2,
-      top: canvas.getHeight() / 2,
+      left,
+      top,
       radius: 80 * s,
       fill: "transparent",
       stroke: color,
@@ -148,11 +149,12 @@ export function addText(
       fill: color,
       angle: (angle * 180) / Math.PI + 90,
     });
+    const { left, top } = centerNudge(canvas, s);
     const g = new fabric.Group([line, head], {
       originX: "center",
       originY: "center",
-      left: canvas.getWidth() / 2,
-      top: canvas.getHeight() / 2,
+      left,
+      top,
       ...handleStyle(s),
     });
     canvas.add(g);

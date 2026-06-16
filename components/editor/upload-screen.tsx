@@ -145,7 +145,7 @@ useEffect(() => {
           <div className="inline-flex items-center gap-1 rounded-2xl border border-border bg-background p-1 shadow-lg">
             {PREVIEW_SHAPE_TOOLS.map(({ id, label, Icon }) => (
               <PreviewToolButton key={id} label={label} onClick={handlePreviewToolClick}>
-                <Icon className="size-5" />
+                <Icon className="size-4" />
               </PreviewToolButton>
             ))}
             <PreviewToolButton label="Color" onClick={handlePreviewToolClick}>
@@ -156,15 +156,15 @@ useEffect(() => {
             </PreviewToolButton>
             <PreviewDivider />
             <PreviewToolButton label="Undo" onClick={handlePreviewToolClick}>
-              <Undo2 className="size-5" />
+              <Undo2 className="size-4" />
             </PreviewToolButton>
             <PreviewToolButton label="Redo" onClick={handlePreviewToolClick}>
-              <Redo2 className="size-5" />
+              <Redo2 className="size-4" />
             </PreviewToolButton>
             <PreviewDivider />
             {PREVIEW_ACTION_TOOLS.map(({ id, label, Icon }) => (
               <PreviewToolButton key={id} label={label} onClick={handlePreviewToolClick}>
-                <Icon className="size-5" />
+                <Icon className="size-4" />
               </PreviewToolButton>
             ))}
           </div>

@@ -163,7 +163,7 @@ export function EditorToolbar({
   };
 
   return (
-    <div className="relative flex items-center gap-3 border-b border-border bg-card px-30 py-2 md:flex-wrap md:gap-4 md:px-4 md:py-3">
+    <div className="relative flex items-center gap-3 border-b border-border bg-card px-30 py-2 md:flex-nowrap md:gap-4 md:px-4 md:py-3">
       <div className="hidden min-w-0 items-center gap-1 md:flex">
         <FilenameEditor value={filename} onRename={onRename} />
       </div>
@@ -178,7 +178,7 @@ export function EditorToolbar({
                 active={active}
                 onClick={() => handleToolChange(id)}
               >
-                <Icon className={cn("size-4 md:size-5", active && "stroke-[2.5]")} />
+                <Icon className={cn("size-4.5 md:size-4", active && "stroke-[2.5]")} />
               </ToolButton>
             );
           })}
@@ -186,7 +186,7 @@ export function EditorToolbar({
           <div ref={colorBtnRef} className="relative">
             <ToolButton label="Color" onClick={toggleColors}>
               <span
-                className="size-4 md:size-5 rounded-full border border-border"
+                className="size-4 md:size-4 rounded-full border border-border"
                 style={{ backgroundColor: color }}
               />
             </ToolButton>
@@ -235,15 +235,15 @@ export function EditorToolbar({
           <Divider />
 
           <ToolButton label="Undo" onClick={onUndo} disabled={!canUndo}>
-            <Undo2 className="size-4 md:size-5" />
+            <Undo2 className="size-4 md:size-4" />
           </ToolButton>
           <ToolButton label="Redo" onClick={onRedo} disabled={!canRedo}>
-            <Redo2 className="size-4 md:size-5" />
+            <Redo2 className="size-4 md:size-4" />
           </ToolButton>
 
           <Divider />
           <ToolButton label="Crop" active={cropMode} onClick={onCrop}>
-            <Crop className={cn("size-4 md:size-5", cropMode && "stroke-[2.5]")} />
+            <Crop className={cn("size-4 md:size-4", cropMode && "stroke-[2.5]")} />
           </ToolButton>
 
           <ToolButton label="Rotate" onClick={onRotate}   
@@ -251,7 +251,7 @@ export function EditorToolbar({
           [&_svg]:duration-300 
           active:[&_svg]:rotate-90"
 >
-            <RotateCw className="size-4 md:size-5 " />
+            <RotateCw className="size-4 md:size-4 " />
           </ToolButton>
 
           <BackgroundPopover
@@ -271,7 +271,7 @@ export function EditorToolbar({
           />
 
           <ToolButton label="Delete" onClick={onDelete}>
-            <Trash2 className="size-4 md:size-5" />
+            <Trash2 className="size-4 md:size-4" />
           </ToolButton>
         </div>
       </div>

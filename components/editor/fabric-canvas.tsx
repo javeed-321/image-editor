@@ -1,6 +1,7 @@
 "use client";
 import { cn } from "@/lib/utils";
 
+import { Check, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import * as fabric from "fabric";
 import { EditorToolbar, type Tool } from "./editor-toolbar";
@@ -589,6 +590,26 @@ export default function FabricCanvas() {
         maxSafeWidth={maxSafeWidth}
         onMeasureSize={measureSize}
       />
+      {/* Crop action bar — sits above the canvas (in flow) so it never floats
+          over the image. Only shown while cropping. */}
+      {cropMode && (
+        <div className="flex items-center justify-center gap-2 border-b border-border bg-card px-4 py-2">
+          <button
+            type="button"
+            onClick={cancelCrop}
+            className="flex items-center gap-1 rounded-full border border-border bg-card px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted"
+          >
+            <X className="size-4" /> Cancel
+          </button>
+          <button
+            type="button"
+            onClick={applyCrop}
+            className="flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <Check className="size-4" /> Apply
+          </button>
+        </div>
+      )}
       <div
         ref={canvasWrapRef}
         className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-muted/30 px-2 py-4 pb-20 sm:px-4 sm:py-6 md:pb-6"
@@ -606,9 +627,6 @@ export default function FabricCanvas() {
           onFontFamilyChange={handleFontFamilyChange}
           blurSize={blurSize}
           onBlurSizeChange={setBlurSize}
-          cropMode={cropMode}
-          onCancelCrop={cancelCrop}
-          onApplyCrop={applyCrop}
           onClose={() => setTool("select")}
         />
               <div

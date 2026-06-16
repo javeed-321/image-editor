@@ -319,7 +319,7 @@ function ToolButton({
         active && "text-primary",
         (label === "Undo" || label === "Redo") &&
           !disabled &&
-          "active:scale-90 active:bg-accent active:text-primary",
+          "active:scale-100 active:bg-accent active:text-primary",
         disabled && (label === "Undo" || label === "Redo")
           ? "cursor-not-allowed opacity-50 hover:bg-transparent"
           : "",className

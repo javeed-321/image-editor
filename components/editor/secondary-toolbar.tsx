@@ -58,7 +58,7 @@ export function SecondaryToolbar({
   // Crop mode takes priority — show Cancel / Apply for the active crop.
   if (cropMode) {
     return (
-      <div className="absolute left-1/2 top-3 z-30 -translate-x-1/2 rounded-full border border-border bg-card/95 shadow-lg backdrop-blur">
+      <div className="absolute left-1/2 top-2 z-30 -translate-x-1/2 rounded-full border border-border bg-card/95 shadow-lg backdrop-blur">
         <div className="flex w-max max-w-[90vw] items-center justify-center gap-2 px-4 py-2">
           <button
             type="button"

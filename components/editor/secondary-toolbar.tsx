@@ -38,6 +38,9 @@ const FONT_FAMILIES = [
   "Verdana",
   "Impact",
 ];
+import { useRef, useState } from "react";
+import { GripVertical } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 
 export function SecondaryToolbar({
@@ -55,10 +58,47 @@ export function SecondaryToolbar({
   onApplyCrop,
   onClose,
 }: Props) {
+
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null); // null = default centered
+  const grab = useRef<{ dx: number; dy: number } | null>(null);
+  const onPointerDown = (e: React.PointerEvent) => {
+    const r = rootRef.current!.getBoundingClientRect();
+    grab.current = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+    e.currentTarget.setPointerCapture(e.pointerId); // keep events even if pointer leaves the handle
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    if (!grab.current) return;
+    const parent = rootRef.current!.offsetParent as HTMLElement;
+    const pr = parent.getBoundingClientRect();
+    setPos({
+      x: e.clientX - pr.left - grab.current.dx,
+      y: e.clientY - pr.top - grab.current.dy,
+    });
+  };
+  const onPointerUp = () => { grab.current = null; };
+
   // Crop mode takes priority — show Cancel / Apply for the active crop.
   if (cropMode) {
     return (
-      <div className="absolute left-1/2 top-2 z-30 -translate-x-1/2 rounded-full border border-border bg-card/95 shadow-lg backdrop-blur">
+      <div
+        ref={rootRef}
+        style={pos ? { left: pos.x, top: pos.y } : undefined}
+        className={cn(
+          "absolute z-30 flex items-center rounded-full border border-border bg-card/95 shadow-lg backdrop-blur",
+          !pos && "left-1/2 top-2 -translate-x-1/2", // only center until first drag
+        )}
+      >
+        <div
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          className="flex cursor-grab items-center self-stretch pl-2 active:cursor-grabbing touch-none"
+          title="Drag to move"
+        >
+          <GripVertical className="size-4 text-muted-foreground" />
+        </div>
+
         <div className="flex w-max max-w-[90vw] items-center justify-center gap-2 px-4 py-2">
           <button
             type="button"
@@ -83,8 +123,24 @@ export function SecondaryToolbar({
 
   return (
     // Mobile: compact centered card with stacked controls; sm+: one-line
-    // floating pill. Same controls either way.
-    <div className="absolute left-1/2 top-3 z-30 w-max max-w-[calc(100%-1.5rem)] -translate-x-1/2 rounded-2xl border border-border bg-card/95 shadow-lg backdrop-blur sm:rounded-full">
+    // floating pill. Same controls either way. Drag by the grip handle.
+    <div
+      ref={rootRef}
+      style={pos ? { left: pos.x, top: pos.y } : undefined}
+      className={cn(
+        "absolute z-30 flex items-center w-max max-w-[calc(100%-1.5rem)] rounded-2xl border border-border bg-card/95 shadow-lg backdrop-blur sm:rounded-full",
+        !pos && "left-1/2 top-3 -translate-x-1/2", // only center until first drag
+      )}
+    >
+      <div
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        className="flex cursor-grab items-center self-stretch pl-3 active:cursor-grabbing touch-none"
+        title="Drag to move"
+      >
+        <GripVertical className="size-4 text-muted-foreground" />
+      </div>
       <div className="flex items-center gap-3 px-4 py-2.5 sm:max-w-[90vw] sm:px-5">
         {tool === "text" && (
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">

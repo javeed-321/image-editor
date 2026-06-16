@@ -163,7 +163,7 @@ export function EditorToolbar({
   };
 
   return (
-    <div className="relative flex items-center gap-3 border-b border-border bg-card px-3 py-2 md:flex-wrap md:gap-4 md:px-4 md:py-3">
+    <div className="relative flex items-center gap-3 border-b border-border bg-card px-30 py-2 md:flex-wrap md:gap-4 md:px-4 md:py-3">
       <div className="hidden min-w-0 items-center gap-1 md:flex">
         <FilenameEditor value={filename} onRename={onRename} />
       </div>

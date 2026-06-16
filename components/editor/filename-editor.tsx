@@ -8,13 +8,12 @@ import { cn } from "@/lib/utils";
 type Props = {
   value: string;
   onRename: (name: string) => void;
-  className?: string;
 };
 
 // Canva-style inline rename: the title looks like plain text, reveals a
 // pencil + background on hover, and swaps to an input on click. Enter or
 // clicking away commits; Escape reverts.
-export function FilenameEditor({ value, onRename, className }: Props) {
+export function FilenameEditor({ value, onRename,  }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -61,10 +60,8 @@ export function FilenameEditor({ value, onRename, className }: Props) {
           }
         }}
         spellCheck={false}
-        aria-label="File name"
         className={cn(
-          "h-8 w-[240px] rounded-lg border border-input bg-background px-2.5 text-sm font-medium outline-none ring-2 ring-ring/40",
-          className,
+          "h-8 w-[180px] rounded-lg border border-input bg-background px-2.5 text-sm font-medium outline-none ring-2 ring-ring/40",
         )}
       />
     );
@@ -76,8 +73,7 @@ export function FilenameEditor({ value, onRename, className }: Props) {
       onClick={startEdit}
       title="Rename"
       className={cn(
-        "group flex h-8 min-w-0 max-w-[240px] items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium transition-colors hover:bg-muted",
-        className,
+        "group flex h-8 min-w-0 max-w-[200px] items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium transition-colors hover:bg-muted",
       )}
     >
       <span className="truncate">{value || "Untitled"}</span>

@@ -61,7 +61,7 @@ export function FilenameEditor({ value, onRename,  }: Props) {
         }}
         spellCheck={false}
         className={cn(
-          "h-8 w-[180px] rounded-lg border border-input bg-background px-2.5 text-sm font-medium outline-none ring-2 ring-ring/40",
+          "h-8 w-[200px] rounded-lg border border-input bg-background px-2.5 text-sm font-medium outline-none ring-2 ring-ring/40",
         )}
       />
     );

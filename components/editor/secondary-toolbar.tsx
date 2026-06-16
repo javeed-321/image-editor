@@ -38,7 +38,7 @@ const FONT_FAMILIES = [
   "Verdana",
   "Impact",
 ];
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -62,6 +62,15 @@ export function SecondaryToolbar({
   const rootRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null); // null = default centered
   const grab = useRef<{ dx: number; dy: number } | null>(null);
+
+  // Snap back to the default top-center spot whenever the tool (or crop mode)
+  // changes. The component stays mounted across text/highlight/blur switches,
+  // so without this the next tool's pill would appear at the previous drag
+  // position instead of at the top.
+  useEffect(() => {
+    setPos(null);
+  }, [tool, cropMode]);
+
   const onPointerDown = (e: React.PointerEvent) => {
     const r = rootRef.current!.getBoundingClientRect();
     grab.current = { dx: e.clientX - r.left, dy: e.clientY - r.top };

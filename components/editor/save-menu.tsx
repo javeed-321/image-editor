@@ -57,7 +57,8 @@ function estimateBytes(
   compress: boolean,
 ): number {
   const px = w * h;
-  if (format === "png") return Math.round(px * 3);
+  // Compressed PNG = 8-bit palette (≤256 colors) ≈ 1 B/px; lossless ≈ 3 B/px.
+  if (format === "png") return Math.round(px * (compress ? 1 : 3));
   return Math.round(px * (compress ? 0.1 : 0.3));
 }
 
@@ -123,7 +124,7 @@ export function SaveMenu({
   } | null>(null);
   useEffect(() => {
     if (!open || !onMeasureSize) return;
-    const wantCompress = isJpeg && compress;
+    const wantCompress = compress;
     const id = setTimeout(() => {
       const bytes = onMeasureSize({
         format,
@@ -135,7 +136,7 @@ export function SaveMenu({
       }
     }, 250);
     return () => clearTimeout(id);
-  }, [open, format, committedWidth, compress, isJpeg, onMeasureSize]);
+  }, [open, format, committedWidth, compress, onMeasureSize]);
 
   // Size label: exact when we measured these exact settings; while dragging,
   // scale the last real measurement by pixel count (file size ≈ proportional
@@ -145,14 +146,14 @@ export function SaveMenu({
   const settingsMatch =
     measured !== null &&
     measured.format === format &&
-    measured.compress === (isJpeg && compress);
+    measured.compress === compress;
   const sizeLabel = settingsMatch
     ? measured.width === width
       ? formatBytes(measured.bytes)
       : `~${formatBytes((measured.bytes * width * width) / (measured.width * measured.width))}`
     : onMeasureSize
       ? "calculating…"
-      : `~${formatBytes(estimateBytes(format, width, outH, isJpeg && compress))}`;
+      : `~${formatBytes(estimateBytes(format, width, outH, compress))}`;
   const atCeiling = width >= maxWidth;
   // Multiplier shown to the user — relative to the canvas's native size.
   // ×1 = "what you see on screen", ×N = N times bigger (clamped at source).
@@ -180,7 +181,7 @@ export function SaveMenu({
       filename: filename || "untitled",
       format,
       targetWidth: width,
-      compress: isJpeg && compress,
+      compress,
       transparent: !isJpeg && transparent,
     });
     setOpen(false);
@@ -300,17 +301,17 @@ export function SaveMenu({
             </p>
           </div>
 
-          {isJpeg && (
-            <label className="flex cursor-pointer select-none items-center gap-2 text-sm text-foreground">
-              <input
-                type="checkbox"
-                checked={compress}
-                onChange={(e) => setCompress(e.target.checked)}
-                className="size-4 accent-primary"
-              />
-              Compress file (lower quality)
-            </label>
-          )}
+          <label className="flex cursor-pointer select-none items-center gap-2 text-sm text-foreground">
+            <input
+              type="checkbox"
+              checked={compress}
+              onChange={(e) => setCompress(e.target.checked)}
+              className="size-4 accent-primary"
+            />
+            {isJpeg
+              ? "Compress file (lower quality)"
+              : "Compress file (reduce colors, smaller)"}
+          </label>
         </div>
 
         <div className="border-t border-border-muted p-4">

@@ -73,6 +73,14 @@ export function useCanvasInit({
           evented: false,
           originX: "center",
           originY: "center",
+          // Draw the photo straight from its full-resolution source element
+          // instead of an offscreen object cache. The cache is sized to the
+          // display scale (×devicePixelRatio) then clamped by perfLimitSizeTotal,
+          // so on a HiDPI screen — or when exporting above the cached scale —
+          // Fabric blows up a too-small cache and text goes soft. With caching
+          // off the image is resampled from source on every render, matching it
+          // 1:1 (how Canva keeps screenshots crisp). Shapes/text keep caching.
+          objectCaching: false,
         });
       (img as fabric.FabricImage & { isUserImage?: boolean }).isUserImage = true;
         c.add(img);

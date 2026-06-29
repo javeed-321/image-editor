@@ -7,7 +7,7 @@ export type BatchOptions = {
   cornerRadius: number;
   bgColor?: string;
   format?: "png" | "jpg";
-  /** URLs to pick from randomly. One is chosen per image. No background if empty. */
+  /** Data URLs to pick from randomly. One is chosen per image. No background if empty. */
   backgroundUrls?: string[];
 };
 

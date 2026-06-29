@@ -103,7 +103,7 @@ function exportParams(c: fabric.Canvas, opts: ExportOptions) {
 // quantization (8-bit, ≤256 colors) — the same lossy-PNG trick Canva/TinyPNG
 // use to shrink screenshots. JPEG and uncompressed PNG use the native encoder.
 // Throws on a CORS-tainted canvas (toDataURL / getImageData both fail there).
-function encodeCanvas(
+export function encodeCanvas(
   c: fabric.Canvas,
   opts: ExportOptions,
 ): { blob: Blob; bytes: number } {

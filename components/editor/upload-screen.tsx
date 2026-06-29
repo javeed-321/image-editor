@@ -10,6 +10,7 @@ import {
   EyeOff,
   Frame,
   Highlighter,
+  Images,
   Link as LinkIcon,
   Pen,
   Redo2,
@@ -59,12 +60,14 @@ type Props = {
 };
 import { Toaster } from "@/components/ui/sonner"
 import { toast } from "sonner";
+import { BatchDialog } from "./batch-dialog";
 
 export function UploadScreen({ onLoadFromFile, onLoadFromUrl }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showMenu, setShowMenu] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [showUrlDialog, setShowUrlDialog] = useState(false);
+  const [showBatchDialog, setShowBatchDialog] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const [urlError, setUrlError] = useState<string | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -264,6 +267,18 @@ useEffect(() => {
                     <LinkIcon className="size-4" />
                     From URL
                   </Button>
+                  <Button
+                    variant="ghost"
+                    role="menuitem"
+                    className="flex w-full justify-start items-center gap-2 px-3 py-2 text-sm h-auto rounded-none"
+                    onClick={() => {
+                      setShowMenu(false);
+                      setShowBatchDialog(true);
+                    }}
+                  >
+                    <Images className="size-4" />
+                    Batch process
+                  </Button>
                 </div>
               )}
             </div>
@@ -297,6 +312,11 @@ useEffect(() => {
         <div className="mt-12 w-full">
           <LandingContent onChooseFile={() => fileInputRef.current?.click()} />
         </div>
+
+        <BatchDialog
+          open={showBatchDialog}
+          onClose={() => setShowBatchDialog(false)}
+        />
 
         {/* URL Dialog */}
         <Dialog open={showUrlDialog} onOpenChange={setShowUrlDialog}>
